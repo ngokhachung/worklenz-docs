@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin · 1. Thành viên và phân quyền</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <style>
+    .role-sel { width: 130px; height: 28px; padding: 0 8px; }
+    .matrix td, .matrix th { text-align: center; }
+    .matrix td:first-child, .matrix th:first-child { text-align: left; }
+    .matrix .y { color: #389e0d; font-weight: 700; }
+    .matrix .n { color: #bfbfbf; }
+    .matrix .p { color: #d46b08; font-size: 12px; }
+    .email-tags { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 6px; border: 1px solid var(--border-2); border-radius: var(--radius); min-height: 34px; align-items: center; }
+    .email-tags input { border: none; outline: none; flex: 1; min-width: 160px; font: inherit; padding: 2px; }
+    .email-tags .tag button { border: none; background: none; cursor: pointer; padding: 0 0 0 4px; color: var(--text-3); }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+    tr.new td { animation: rowin 1.5s ease-out; }
+    @keyframes rowin { from { background: #e6f4ff; } to { background: transparent; } }
+    .mail { border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+    .mail .m-head { background: #fafafa; padding: 8px 12px; font-size: 12px; color: var(--text-2); border-bottom: 1px solid var(--border); }
+    .mail .m-body { padding: 14px; text-align: center; }
+    .steps { display: flex; gap: 6px; justify-content: center; margin-top: 10px; flex-wrap: wrap; }
+  </style>
+</head>
+<body data-root="../" data-role="admin" data-step="1" data-area="settings" data-rail="Team Members">
+  <main>
+    <div class="page-head">
+      <div>
+        <h1>Thành viên <span class="epic" data-epic="E02"></span></h1>
+        <div class="sub">Team Sao Mai Digital · <span id="member-count"></span></div>
+      </div>
+      <div class="actions">
+        <input class="input" id="search" placeholder="Tìm theo tên" style="width:200px" aria-label="Tìm thành viên">
+        <button class="btn primary hint-pulse" data-open="#invite" id="invite-btn">＋ Mời thành viên</button>
+      </div>
+    </div>
+
+    <div class="table-wrap mb16">
+      <table class="table">
+        <thead><tr><th>Tên</th><th>Email</th><th>Job title</th><th>Team Lead</th><th class="num">Project</th><th>Vai trò</th><th></th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+
+    <div class="grid side">
+      <div class="card">
+        <div class="card-title">Quyền của từng vai trò <span class="right muted small">Áp dụng ở cả giao diện và API</span></div>
+        <div class="table-wrap">
+          <table class="table matrix">
+            <thead><tr><th>Quyền</th><th>Owner</th><th>Admin</th><th>Team Lead</th><th>Member</th><th>Guest</th></tr></thead>
+            <tbody>
+              <tr><td>Mời, sửa, vô hiệu hoá thành viên</td><td class="y">✓</td><td class="y">✓</td><td class="n">—</td><td class="n">—</td><td class="n">—</td></tr>
+              <tr><td>Đổi vai trò, gán Team Lead</td><td class="y">✓</td><td class="y">✓</td><td class="n">—</td><td class="n">—</td><td class="n">—</td></tr>
+              <tr><td>Tạo project</td><td class="y">✓</td><td class="y">✓</td><td class="p">Từ template*</td><td class="p">Từ template*</td><td class="n">—</td></tr>
+              <tr><td>Planner, Reporting toàn công ty</td><td class="y">✓</td><td class="y">✓</td><td class="n">—</td><td class="n">—</td><td class="n">—</td></tr>
+              <tr><td>Báo cáo của nhóm mình</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="n">—</td><td class="n">—</td></tr>
+              <tr><td>Finance</td><td class="y">✓</td><td class="y">✓</td><td class="p">Nếu được cấp</td><td class="n">—</td><td class="n">—</td></tr>
+              <tr><td>Thấy project</td><td>Tất cả</td><td>Tất cả</td><td>Tất cả</td><td>Được thêm vào</td><td>Chỉ project được mời</td></tr>
+              <tr><td>Sửa task</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="p">Chỉ xem</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="muted small mt8">* Khi được bật quyền “tạo project từ template”: người tạo thành Project Manager của project đó, không có quyền tài chính.</p>
+      </div>
+      <div>
+        <div class="card">
+          <div class="card-title">Link mời vào team <span class="epic" data-epic="E01"></span></div>
+          <div class="row"><input class="input" readonly value="https://nhip.saomai.vn/invite/t/8f3k2Q" aria-label="Link mời"><button class="btn" id="copy-link">Sao chép</button></div>
+          <div class="row mt8 small muted"><span>Hết hạn sau 7 ngày · Đã dùng 2 lần</span><span class="spacer"></span><button class="btn sm danger" id="revoke">Thu hồi</button></div>
+        </div>
+        <div class="card" id="mail-card" hidden>
+          <div class="card-title">Email người được mời nhận</div>
+          <div class="mail">
+            <div class="m-head">Tới: <span id="mail-to"></span> · Chủ đề: Thu Hà mời bạn vào Sao Mai Digital</div>
+            <div class="m-body">
+              <p><b>Thu Hà</b> mời bạn tham gia <b>Sao Mai Digital</b> trên Nhịp với vai trò <b id="mail-role"></b>.</p>
+              <p class="muted small mt8" id="mail-msg"></p>
+              <button class="btn primary mt8" data-inert>Tham gia team</button>
+              <p class="muted small mt16">Lần đầu đăng nhập, người mới đi qua wizard 3 bước:</p>
+              <div class="steps"><span class="tag">1. Tên tổ chức</span><span class="tag">2. Project đầu tiên</span><span class="tag">3. Mời đồng nghiệp</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="overlay" id="invite" hidden role="dialog" aria-modal="true" aria-labelledby="inv-title">
+      <div class="modal">
+        <div class="modal-head"><span id="inv-title">Mời thành viên</span>&nbsp;<span class="epic" data-epic="E01"></span><button class="close" data-dismiss aria-label="Đóng">✕</button></div>
+        <form id="inv-form" autocomplete="off">
+          <div class="modal-body">
+            <div class="field">
+              <label for="inv-email">Email <span class="req">*</span></label>
+              <div class="email-tags" id="email-tags"><input id="inv-email" placeholder="Nhập email rồi Enter, nhập được nhiều email"></div>
+            </div>
+            <div class="grid2">
+              <div class="field"><label for="inv-title-sel">Job title</label><select class="select" id="inv-title-sel"><option>Content Writer</option><option>Designer</option><option>Frontend Developer</option><option>Backend Developer</option><option>QA Engineer</option></select></div>
+              <div class="field"><label for="inv-role">Vai trò</label><select class="select" id="inv-role"><option>Member</option><option>Team Lead</option><option>Admin</option><option>Guest</option></select></div>
+              <div class="field"><label for="inv-dept">Phòng ban</label><select class="select" id="inv-dept"><option>Marketing</option><option>Kỹ thuật</option><option>Thiết kế</option></select></div>
+              <div class="field"><label for="inv-lead">Team Lead quản lý</label><select class="select" id="inv-lead"><option>Quốc Bảo</option><option>— Chưa gán —</option></select></div>
+            </div>
+            <div class="field"><label for="inv-msg">Lời nhắn</label><textarea class="input" id="inv-msg" rows="2">Chào mừng em đến với Sao Mai! Hẹn gặp ở buổi giao ban sáng thứ Hai.</textarea></div>
+            <label class="row small" style="gap:6px"><input type="checkbox"> Cho phép tạo project từ template</label>
+          </div>
+          <div class="modal-foot"><button class="btn" type="button" data-dismiss>Huỷ</button><button class="btn primary" type="submit">Gửi lời mời</button></div>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <aside class="notes">
+    <b>Thu Hà (Giám đốc) nhận một nhân viên mới.</b>
+    <ul>
+      <li>Bấm <b>Mời thành viên</b>: nhập email <i>ngoc.tram@saomai.vn</i>, chọn job title, vai trò, Team Lead, rồi gửi.</li>
+      <li>Dòng mới hiện nhãn “Đang chờ chấp nhận”, kèm bản xem trước email mời và wizard 3 bước của người mới.</li>
+      <li>Đổi vai trò ngay trên bảng (ví dụ Hoàng Nam → Team Lead). Mỗi lần đổi quyền đều ghi vào Audit Log.</li>
+      <li>Bảng quyền giải thích 5 vai trò. Minh Trí là Guest, chỉ thấy project Website Hoa Sen.</li>
+    </ul>
+    <b>Câu hỏi để chốt:</b> Có cần đăng nhập Google/Apple, hay chỉ email nội bộ? Có cần vai trò Guest cho người ngoài công ty không? Audit Log (E16) có bắt buộc theo quy định nội bộ không?
+  </aside>
+
+  <script src="../assets/prototype.js"></script>
+  <script>
+    (function () {
+      var A = WL.avatar, P = WL.PEOPLE;
+      var members = [
+        { id: 'ha', email: 'thu.ha@saomai.vn', title: 'Giám đốc', lead: '', projects: 6, role: 'Owner' },
+        { id: 'bao', email: 'quoc.bao@saomai.vn', title: 'Project Manager', lead: '', projects: 4, role: 'Team Lead' },
+        { id: 'vy', email: 'thao.vy@saomai.vn', title: 'Designer', lead: 'bao', projects: 3, role: 'Member' },
+        { id: 'anh', email: 'minh.anh@saomai.vn', title: 'Frontend Developer', lead: 'bao', projects: 2, role: 'Member' },
+        { id: 'long', email: 'duc.long@saomai.vn', title: 'Backend Developer', lead: 'bao', projects: 2, role: 'Member' },
+        { id: 'nam', email: 'hoang.nam@saomai.vn', title: 'QA Engineer', lead: 'bao', projects: 3, role: 'Member' },
+        { id: 'tri', email: 'tri@seo-partner.vn', title: 'Tư vấn SEO', lead: '', projects: 1, role: 'Guest' }
+      ];
+      var ROLES = ['Owner', 'Admin', 'Team Lead', 'Member', 'Guest'];
+      var newId = null;
+      function render() {
+        var q = document.getElementById('search').value.trim().toLowerCase();
+        var list = members.filter(function (m) { return !q || (m.name || P[m.id].name).toLowerCase().indexOf(q) >= 0; });
+        document.getElementById('rows').innerHTML = list.map(function (m) {
+          var name = m.name || P[m.id].name;
+          var av = m.id ? A(m.id) : '<span class="av c8">' + name.split(' ').map(function (w) { return w[0]; }).slice(-2).join('') + '</span>';
+          var roleCell = m.role === 'Owner'
+            ? '<span class="tag gold" style="color:#d48806;background:#fffbe6;border-color:#ffe58f">Owner</span>'
+            : '<select class="select role-sel" data-role-of="' + m.email + '" aria-label="Vai trò của ' + name + '">' + ROLES.slice(1).map(function (r) { return '<option' + (r === m.role ? ' selected' : '') + '>' + r + '</option>'; }).join('') + '</select>';
+          return '<tr' + (m.email === newId ? ' class="new"' : '') + '><td><span class="person">' + av + ' <b>' + WL.escapeHtml(name) + '</b>' + (m.pending ? ' <span class="tag orange">Đang chờ chấp nhận</span>' : '') + '</span></td>' +
+            '<td class="muted">' + WL.escapeHtml(m.email) + '</td><td>' + m.title + '</td><td>' + (m.lead ? '<span class="person">' + A(m.lead) + ' ' + P[m.lead].name + '</span>' : '<span class="muted">—</span>') + '</td>' +
+            '<td class="num">' + m.projects + '</td><td>' + roleCell + '</td>' +
+            '<td>' + (m.pending ? '<button class="btn sm" data-resend="' + m.email + '">Gửi lại</button>' : '<button class="btn sm text" data-inert aria-label="Thêm thao tác">⋯</button>') + '</td></tr>';
+        }).join('');
+        var active = members.filter(function (m) { return !m.pending; }).length;
+        document.getElementById('member-count').textContent = active + ' thành viên · ' + (members.length - active) + ' lời mời đang chờ';
+      }
+      render();
+
+      document.getElementById('rows').addEventListener('change', function (e) {
+        var sel = e.target.closest('[data-role-of]');
+        if (!sel) return;
+        var m = members.filter(function (x) { return x.email === sel.dataset.roleOf; })[0];
+        var before = m.role;
+        m.role = sel.value;
+        WL.toast((m.name || P[m.id].name) + ': ' + before + ' → ' + m.role + '. Đã ghi vào Audit Log.');
+      });
+      document.getElementById('rows').addEventListener('click', function (e) {
+        var b = e.target.closest('[data-resend]');
+        if (b) WL.toast('Đã gửi lại email mời tới ' + b.dataset.resend);
+      });
+      document.getElementById('search').addEventListener('input', render);
+
+      // Email tag input
+      var emails = [];
+      var tagsBox = document.getElementById('email-tags');
+      var emailInput = document.getElementById('inv-email');
+      function renderTags() {
+        tagsBox.querySelectorAll('.tag').forEach(function (t) { t.remove(); });
+        emails.forEach(function (em, i) {
+          var t = document.createElement('span');
+          t.className = 'tag blue';
+          t.innerHTML = WL.escapeHtml(em) + '<button type="button" data-rm="' + i + '" aria-label="Bỏ ' + WL.escapeHtml(em) + '">✕</button>';
+          tagsBox.insertBefore(t, emailInput);
+        });
+      }
+      function addEmail() {
+        var v = emailInput.value.trim().replace(/,$/, '');
+        if (!v) return true;
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) { WL.toast('Email không hợp lệ: ' + v, 'error'); return false; }
+        if (emails.indexOf(v) < 0) emails.push(v);
+        emailInput.value = '';
+        renderTags();
+        return true;
+      }
+      emailInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addEmail(); }
+        if (e.key === 'Backspace' && !emailInput.value && emails.length) { emails.pop(); renderTags(); }
+      });
+      tagsBox.addEventListener('click', function (e) {
+        var b = e.target.closest('[data-rm]');
+        if (b) { emails.splice(+b.dataset.rm, 1); renderTags(); }
+        else emailInput.focus();
+      });
+      document.getElementById('invite-btn').addEventListener('click', function () {
+        this.classList.remove('hint-pulse');
+        if (!emails.length && !emailInput.value) emailInput.value = 'ngoc.tram@saomai.vn';
+        setTimeout(function () { emailInput.focus(); }, 30);
+      });
+
+      document.getElementById('inv-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (!addEmail()) return;
+        if (!emails.length) { WL.toast('Nhập ít nhất một email', 'error'); emailInput.focus(); return; }
+        var role = document.getElementById('inv-role').value;
+        var title = document.getElementById('inv-title-sel').value;
+        var lead = document.getElementById('inv-lead').value === 'Quốc Bảo' ? 'bao' : '';
+        emails.forEach(function (em) {
+          var known = em === 'ngoc.tram@saomai.vn';
+          members.push({ id: known ? 'tram' : null, name: known ? 'Ngọc Trâm' : em.split('@')[0], email: em, title: title, lead: lead, projects: 0, role: role, pending: true });
+        });
+        newId = emails[emails.length - 1];
+        document.getElementById('mail-to').textContent = emails.join(', ');
+        document.getElementById('mail-role').textContent = role;
+        document.getElementById('mail-msg').textContent = '“' + document.getElementById('inv-msg').value + '”';
+        document.getElementById('mail-card').hidden = false;
+        WL.toast('Đã gửi ' + emails.length + ' lời mời');
+        emails = []; renderTags();
+        document.getElementById('invite').hidden = true;
+        render();
+      });
+
+      document.getElementById('copy-link').addEventListener('click', function () { WL.toast('Đã sao chép link mời'); });
+      var revoke = document.getElementById('revoke');
+      revoke.addEventListener('click', function () {
+        if (revoke.dataset.armed) {
+          revoke.closest('.card').querySelector('input').value = 'Link đã bị thu hồi';
+          revoke.textContent = 'Đã thu hồi'; revoke.disabled = true;
+          WL.toast('Đã thu hồi link mời. Link cũ không dùng được nữa.');
+          return;
+        }
+        revoke.dataset.armed = '1'; revoke.textContent = 'Bấm lần nữa để thu hồi';
+        setTimeout(function () { if (!revoke.disabled) { delete revoke.dataset.armed; revoke.textContent = 'Thu hồi'; } }, 3000);
+      });
+    })();
+  </script>
+</body>
+</html>

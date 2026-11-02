@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Thành viên · 2. Board</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <style>
+    .board { display: grid; grid-template-columns: repeat(4, minmax(240px, 1fr)); gap: 14px; align-items: start; overflow-x: auto; padding-bottom: 8px; }
+    .col { background: #f0f2f5; border-radius: var(--radius-lg); padding: 10px; min-height: 420px; transition: background 150ms; }
+    .col.over { background: #d6e4ff; }
+    .col-head { display: flex; align-items: center; gap: 8px; padding: 2px 4px 10px; font-weight: 600; }
+    .col-head .count { background: rgba(0,0,0,0.06); border-radius: 10px; padding: 0 8px; font-size: 12px; font-weight: 500; }
+    .col-head .bar { width: 4px; height: 16px; border-radius: 2px; }
+    .kcard { background: var(--card); border-radius: var(--radius); padding: 10px 12px; margin-bottom: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.06); border: 1px solid var(--border); cursor: grab; }
+    .kcard:active { cursor: grabbing; }
+    .kcard.dragging { opacity: 0.4; }
+    .kcard.mine { border-left: 3px solid #eb2f96; }
+    .kcard .k-top { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-3); }
+    .kcard .k-name { margin: 4px 0 8px; font-weight: 500; }
+    .kcard .k-foot { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-3); }
+    .kcard .move { margin-left: auto; border: 1px solid var(--border-2); background: var(--card); border-radius: 4px; cursor: pointer; font-size: 11px; padding: 0 6px; color: var(--text-2); }
+    .kcard .blocked { color: #cf1322; font-size: 12px; margin-bottom: 6px; }
+    .add-card { width: 100%; text-align: left; border: none; background: transparent; color: var(--text-3); padding: 6px 4px; cursor: pointer; border-radius: 4px; }
+    .add-card:hover { background: rgba(0,0,0,0.04); color: var(--text); }
+    .shake { animation: shake 400ms; }
+    @keyframes shake { 0%,100% { transform: none; } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+  </style>
+</head>
+<body data-root="../" data-role="member" data-step="2" data-area="projects" data-rail="none">
+  <main>
+    <div data-project-header="Board"></div>
+    <div class="row wrap mb16">
+      <span class="epic" data-epic="E05"></span>
+      <span class="muted">Nhóm theo</span>
+      <div class="seg"><button class="active">Status</button><button data-inert>Priority</button><button data-inert>Phase</button></div>
+      <button class="btn sm" data-inert>Lọc</button>
+      <label class="row small" style="gap:6px"><input type="checkbox" id="only-mine"> Chỉ việc của tôi</label>
+      <span class="spacer"></span>
+      <span class="muted small">⛔ = bị chặn bởi task phụ thuộc</span><span class="epic" data-epic="E09"></span>
+      <span class="muted small">· Kéo thẻ sang cột khác, hoặc bấm “→” trên thẻ</span>
+    </div>
+    <div class="board" id="board"></div>
+  </main>
+
+  <aside class="notes">
+    <b>Thảo Vy vừa làm xong bản thiết kế trang chủ.</b>
+    <ul>
+      <li>Kéo thẻ <b>WEB-12 Thiết kế trang chủ v2</b> từ “Đang làm” sang <b>“Chờ duyệt”</b>. PM thấy ngay, không cần tải lại trang.</li>
+      <li>Thử kéo <b>WEB-14</b> (bị chặn bởi WEB-12) sang “Hoàn thành”: app <b>chặn lại</b> vì task phụ thuộc chưa xong. Đây là phần dependency của E09.</li>
+      <li>Tích “Chỉ việc của tôi” để lọc thẻ của Vy.</li>
+    </ul>
+    <b>Câu hỏi để chốt:</b> Dependency đang ở E09 (Phase 2). Có cần chặn chuyển trạng thái theo task phụ thuộc ngay trong MVP không?
+  </aside>
+
+  <script src="../assets/prototype.js"></script>
+  <script>
+    (function () {
+      var COLS = [
+        { id: 'todo', name: 'Cần làm', color: '#8c8c8c' },
+        { id: 'doing', name: 'Đang làm', color: '#1890ff' },
+        { id: 'review', name: 'Chờ duyệt', color: '#fa8c16' },
+        { id: 'done', name: 'Hoàn thành', color: '#52c41a' }
+      ];
+      var cards = [
+        { key: 'WEB-12', name: 'Thiết kế trang chủ v2', col: 'doing', pr: 'high', due: 'Hôm nay', who: ['vy'], sub: '2/3', labels: ['UI'], hint: true },
+        { key: 'WEB-9', name: 'Bộ icon mới', col: 'doing', pr: 'medium', due: '01/11', who: ['vy'], sub: '5/8', labels: ['UI'] },
+        { key: 'WEB-20', name: 'API đăng ký nhận tin', col: 'doing', pr: 'medium', due: '06/11', who: ['long'], labels: ['Backend'] },
+        { key: 'WEB-15', name: 'Thiết kế trang Liên hệ', col: 'todo', pr: 'medium', due: '07/11', who: ['vy'], labels: ['UI'] },
+        { key: 'WEB-14', name: 'Code giao diện trang chủ', col: 'todo', pr: 'high', due: '13/11', who: ['anh'], blockedBy: 'WEB-12', labels: ['Frontend'] },
+        { key: 'WEB-18', name: 'Kiểm thử form liên hệ', col: 'todo', pr: 'low', due: '20/11', who: ['nam'], labels: ['QA'] },
+        { key: 'WEB-11', name: 'Nội dung trang Giới thiệu', col: 'review', pr: 'medium', due: '04/11', who: ['bao'], labels: ['Content'] },
+        { key: 'WEB-6', name: 'Moodboard và bảng màu', col: 'done', pr: 'medium', due: '28/10', who: ['vy'], labels: ['UI'] },
+        { key: 'WEB-3', name: 'Sitemap và luồng người dùng', col: 'done', pr: 'high', due: '27/10', who: ['bao', 'vy'], labels: [] }
+      ];
+      var board = document.getElementById('board');
+      var onlyMine = document.getElementById('only-mine');
+      var PR = { low: 'Low', medium: 'Medium', high: 'High', critical: 'Critical' };
+
+      function byKey(k) { return cards.filter(function (c) { return c.key === k; })[0]; }
+      function render() {
+        board.innerHTML = COLS.map(function (col) {
+          var list = cards.filter(function (c) { return c.col === col.id && (!onlyMine.checked || c.who.indexOf('vy') >= 0); });
+          return '<section class="col" data-col="' + col.id + '" aria-label="' + col.name + '">' +
+            '<div class="col-head"><span class="bar" style="background:' + col.color + '"></span>' + col.name + '<span class="count">' + list.length + '</span></div>' +
+            list.map(function (c) {
+              var blocker = c.blockedBy && byKey(c.blockedBy).col !== 'done';
+              var nextCol = COLS[COLS.findIndex(function (x) { return x.id === col.id; }) + 1];
+              return '<article class="kcard' + (c.who.indexOf('vy') >= 0 ? ' mine' : '') + (c.hint && col.id === 'doing' ? ' hint-pulse' : '') + '" draggable="true" data-key="' + c.key + '">' +
+                '<div class="k-top"><span>' + c.key + '</span>' + c.labels.map(function (l) { return '<span class="tag gray" style="font-size:11px;line-height:16px">' + l + '</span>'; }).join('') + '</div>' +
+                '<div class="k-name">' + c.name + '</div>' +
+                (blocker ? '<div class="blocked">⛔ Bị chặn bởi ' + c.blockedBy + '</div>' : '') +
+                '<div class="k-foot"><span class="prio ' + c.pr + '">' + PR[c.pr] + '</span><span>📅 ' + c.due + '</span>' +
+                (c.sub ? '<span title="Subtask">☑ ' + c.sub + '</span>' : '') +
+                '<span class="spacer"></span><span>' + c.who.map(function (w) { return WL.avatar(w); }).join('') + '</span>' +
+                (nextCol ? '<button class="move" data-move="' + c.key + '" data-to="' + nextCol.id + '" aria-label="Chuyển ' + c.key + ' sang ' + nextCol.name + '" title="Chuyển sang ' + nextCol.name + '">→</button>' : '') +
+                '</div></article>';
+            }).join('') +
+            '<button class="add-card" data-inert>＋ Thêm task</button></section>';
+        }).join('');
+      }
+
+      function move(key, to) {
+        var c = byKey(key);
+        if (!c || c.col === to) return;
+        if (to === 'done' && c.blockedBy && byKey(c.blockedBy).col !== 'done') {
+          WL.toast('Không thể chuyển ' + key + ' sang Hoàn thành: ' + c.blockedBy + ' chưa xong', 'error');
+          var node = board.querySelector('[data-key="' + key + '"]');
+          if (node) { node.classList.remove('shake'); void node.offsetWidth; node.classList.add('shake'); }
+          return;
+        }
+        c.col = to;
+        c.hint = false;
+        render();
+        var colName = COLS.filter(function (x) { return x.id === to; })[0].name;
+        WL.toast(key + ' → ' + colName + '. Mọi người đang mở project thấy ngay (real-time).');
+        if (key === 'WEB-12' && to === 'review') {
+          setTimeout(function () { WL.toast('Quốc Bảo (PM) nhận thông báo: WEB-12 chờ duyệt', 'info'); }, 900);
+        }
+      }
+
+      var dragKey = null;
+      board.addEventListener('dragstart', function (e) {
+        var card = e.target.closest('.kcard');
+        if (!card) return;
+        dragKey = card.dataset.key;
+        card.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', dragKey);
+      });
+      board.addEventListener('dragend', function (e) {
+        var card = e.target.closest('.kcard');
+        if (card) card.classList.remove('dragging');
+        board.querySelectorAll('.col.over').forEach(function (c) { c.classList.remove('over'); });
+      });
+      board.addEventListener('dragover', function (e) {
+        var col = e.target.closest('.col');
+        if (!col) return;
+        e.preventDefault();
+        board.querySelectorAll('.col.over').forEach(function (c) { if (c !== col) c.classList.remove('over'); });
+        col.classList.add('over');
+      });
+      board.addEventListener('drop', function (e) {
+        var col = e.target.closest('.col');
+        if (!col) return;
+        e.preventDefault();
+        col.classList.remove('over');
+        move(e.dataTransfer.getData('text/plain') || dragKey, col.dataset.col);
+      });
+      board.addEventListener('click', function (e) {
+        var b = e.target.closest('[data-move]');
+        if (b) move(b.dataset.move, b.dataset.to);
+      });
+      onlyMine.addEventListener('change', render);
+      render();
+    })();
+  </script>
+</body>
+</html>

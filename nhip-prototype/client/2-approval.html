@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Khách hàng · 2. Duyệt thiết kế</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <style>
+    .preview { border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; background: #f0f0f0; padding: 16px; }
+    .site { background: #fff; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); font-size: 11px; --brand: #db2777; --brand-2: #fdf2f8; }
+    .site.v1 { --brand: #2563eb; --brand-2: #eff6ff; }
+    .site .s-nav { display: flex; align-items: center; gap: 14px; padding: 10px 16px; border-bottom: 1px solid #f0f0f0; }
+    .site .s-logo { font-weight: 800; color: var(--brand); font-size: 13px; }
+    .site .s-nav span:not(.s-logo) { color: #8c8c8c; }
+    .site .s-hero { background: linear-gradient(120deg, var(--brand), color-mix(in srgb, var(--brand) 55%, #fff)); color: #fff; padding: 28px 20px; display: flex; gap: 16px; align-items: center; }
+    .site .s-hero h3 { font-size: 18px; margin-bottom: 6px; }
+    .site .s-hero .play { width: 120px; height: 72px; border-radius: 8px; background: rgba(255,255,255,0.25); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+    .site .s-cta { display: inline-block; margin-top: 8px; padding: 4px 10px; border-radius: 4px; background: #fff; color: var(--brand); font-weight: 700; }
+    .site .s-products { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 14px 16px; }
+    .site.v1 .s-products { grid-template-columns: repeat(2, 1fr); }
+    .site .s-prod { background: var(--brand-2); border-radius: 6px; height: 70px; display: flex; align-items: flex-end; padding: 6px; font-weight: 600; color: var(--brand); }
+    .site .s-quote { margin: 0 16px 16px; padding: 10px 12px; border-left: 3px solid var(--brand); background: #fafafa; font-style: italic; color: #595959; }
+    .site.v1 .s-quote { display: none; }
+    .decision { border: 2px solid var(--primary); border-radius: var(--radius-lg); padding: 16px; background: #fff; }
+    .hist { position: relative; padding-left: 20px; }
+    .hist::before { content: ""; position: absolute; left: 6px; top: 4px; bottom: 4px; width: 2px; background: var(--border); }
+    .hist .h { position: relative; margin-bottom: 14px; font-size: 13px; }
+    .hist .h::before { content: ""; position: absolute; left: -19px; top: 4px; width: 12px; height: 12px; border-radius: 50%; background: var(--c, #bfbfbf); border: 2px solid #fff; box-shadow: 0 0 0 1px var(--c, #bfbfbf); }
+  </style>
+</head>
+<body data-root="../" data-role="client" data-step="2" data-shell="client" data-area="approvals">
+  <main>
+    <div class="page-head">
+      <div>
+        <div class="small muted">Approvals / Website Hoa Sen</div>
+        <h1>Duyệt giao diện Trang chủ v2 <span class="tag orange" id="status-tag">Chờ bạn duyệt</span> <span class="epic" data-epic="E14"></span></h1>
+        <div class="sub">Quốc Bảo gửi hôm nay 16:45 · Hạn 06/11/2026 · Người duyệt: bạn (Client Admin)</div>
+      </div>
+    </div>
+
+    <div class="grid side">
+      <div>
+        <div class="card">
+          <div class="card-title">📎 Trang chủ v2.fig
+            <span class="right"><span class="seg" id="ver"><button data-v="v1">Phiên bản 1</button><button class="active" data-v="v2">Phiên bản 2</button></span></span>
+          </div>
+          <div class="preview">
+            <div class="site" id="site">
+              <div class="s-nav"><span class="s-logo">HOA SEN</span><span>Sản phẩm</span><span>Về chúng tôi</span><span>Tin tức</span><span>Liên hệ</span></div>
+              <div class="s-hero"><div><h3>Tinh hoa sen Việt</h3><div>Sản phẩm từ sen Đồng Tháp, chuẩn quà biếu.</div><span class="s-cta">Mua ngay</span></div><span class="spacer"></span><div class="play">▶</div></div>
+              <div class="s-products"><div class="s-prod">Trà sen</div><div class="s-prod">Hạt sen sấy</div><div class="s-prod">Quà Tết</div></div>
+              <div class="s-quote">“Hộp quà Tết rất sang, đối tác của tôi ai cũng khen.” — Chị Mai, Cần Thơ</div>
+            </div>
+          </div>
+          <p class="small muted mt8" id="ver-note">Phiên bản 2 đã đổi màu chủ đạo sang hồng sen, thêm video ở hero, khối sản phẩm 3 cột và khối cảm nhận khách hàng.</p>
+        </div>
+      </div>
+
+      <div>
+        <div class="decision" id="decision">
+          <h3>Quyết định của bạn</h3>
+          <p class="small muted mt8">Lời nhắn của Quốc Bảo: “Anh xem giúp bố cục, màu chủ đạo và khối sản phẩm. Bản này đã sửa theo góp ý v1 của anh.”</p>
+          <div class="row mt16">
+            <button class="btn success hint-pulse" id="approve">✓ Duyệt</button>
+            <button class="btn" id="changes">Yêu cầu sửa</button>
+          </div>
+          <form id="changes-form" hidden class="mt16">
+            <label class="small" for="changes-text" style="font-weight:500">Cần sửa gì? <span style="color:var(--red)">*</span></label>
+            <textarea class="input mt8" id="changes-text" rows="3" placeholder="Ví dụ: tăng cỡ chữ tiêu đề hero, đổi ảnh hộp quà…"></textarea>
+            <div class="row mt8"><button class="btn primary" type="submit">Gửi yêu cầu sửa</button><button class="btn text" type="button" id="cancel-changes">Huỷ</button></div>
+          </form>
+        </div>
+
+        <div class="card mt16">
+          <div class="card-title">Lịch sử duyệt</div>
+          <div class="hist" id="hist">
+            <div class="h" style="--c:#fa8c16"><b>Phiên bản 2</b> · đang chờ bạn duyệt<div class="muted small">03/11 · Quốc Bảo gửi</div></div>
+            <div class="h" style="--c:#ff4d4f"><b>Phiên bản 1</b> · Bạn yêu cầu sửa<div class="small">“Đổi màu chủ đạo sang hồng sen, thêm khối cảm nhận khách hàng.”</div><div class="muted small">28/10</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <aside class="notes">
+    <b>Gia Huy duyệt bản thiết kế ngay trên portal.</b>
+    <ul>
+      <li>Bấm <b>Phiên bản 1 / Phiên bản 2</b> để so sánh: v2 đã làm theo góp ý lần trước.</li>
+      <li>Bấm <b>✓ Duyệt</b>: trạng thái chuyển Approved, hệ thống ghi đúng phiên bản được duyệt, và Vy cùng PM nhận thông báo (đã thấy ở bước 4 của Thành viên).</li>
+      <li>Hoặc bấm <b>Yêu cầu sửa</b>: bắt buộc ghi lý do, lưu vào lịch sử các lần duyệt.</li>
+      <li>Nếu team tải lên bản mới hơn sau khi đã duyệt, hệ thống cảnh báo.</li>
+    </ul>
+    <b>Câu hỏi để chốt:</b> Nếu chỉ làm một phần của Client Portal, phần “duyệt file” có đáng làm trước tiên không?
+  </aside>
+
+  <script src="../assets/prototype.js"></script>
+  <script>
+    (function () {
+      var site = document.getElementById('site');
+      var note = document.getElementById('ver-note');
+      var NOTES = {
+        v1: 'Phiên bản 1 (28/10): màu xanh dương, hero dùng ảnh tĩnh, sản phẩm 2 cột. Bạn đã yêu cầu sửa.',
+        v2: 'Phiên bản 2 đã đổi màu chủ đạo sang hồng sen, thêm video ở hero, khối sản phẩm 3 cột và khối cảm nhận khách hàng.'
+      };
+      document.getElementById('ver').addEventListener('click', function (e) {
+        var b = e.target.closest('[data-v]'); if (!b) return;
+        this.querySelectorAll('button').forEach(function (x) { x.classList.toggle('active', x === b); });
+        site.classList.toggle('v1', b.dataset.v === 'v1');
+        site.querySelector('.play').textContent = b.dataset.v === 'v1' ? '🖼' : '▶';
+        note.textContent = NOTES[b.dataset.v];
+      });
+
+      var tag = document.getElementById('status-tag');
+      var hist = document.getElementById('hist');
+      var decision = document.getElementById('decision');
+      function done(kind, text) {
+        hist.firstElementChild.remove();
+        var h = document.createElement('div');
+        h.className = 'h';
+        h.style.setProperty('--c', kind === 'ok' ? '#52c41a' : '#ff4d4f');
+        h.innerHTML = '<b>Phiên bản 2</b> · ' + (kind === 'ok' ? 'Bạn đã duyệt' : 'Bạn yêu cầu sửa') + (text ? '<div class="small">“' + WL.escapeHtml(text) + '”</div>' : '') + '<div class="muted small">Hôm nay · vừa xong</div>';
+        hist.insertBefore(h, hist.firstChild);
+        tag.className = 'tag ' + (kind === 'ok' ? 'green' : 'red');
+        tag.textContent = kind === 'ok' ? 'Đã duyệt' : 'Đã yêu cầu sửa';
+        decision.style.borderColor = kind === 'ok' ? '#52c41a' : '#ff4d4f';
+        decision.innerHTML = '<h3>' + (kind === 'ok' ? '✓ Bạn đã duyệt phiên bản 2' : 'Bạn đã yêu cầu sửa phiên bản 2') + '</h3>' +
+          '<p class="small mt8" style="color:var(--text-2)">Sao Mai Digital (Quốc Bảo, Thảo Vy) đã nhận thông báo. ' +
+          (kind === 'ok' ? 'Hệ thống ghi lại đúng phiên bản 2 là bản được duyệt; nếu team tải bản mới hơn, bạn sẽ được báo.' : 'Team sẽ gửi phiên bản 3 để bạn duyệt lại.') + '</p>' +
+          '<a class="btn primary mt16" href="3-discussion.html">Sang thảo luận và yêu cầu thay đổi →</a>';
+        WL.toast(kind === 'ok' ? 'Đã duyệt Trang chủ v2' : 'Đã gửi yêu cầu sửa');
+      }
+      document.getElementById('approve').addEventListener('click', function () { done('ok'); });
+      document.getElementById('changes').addEventListener('click', function () {
+        document.getElementById('changes-form').hidden = false;
+        document.getElementById('changes-text').focus();
+      });
+      document.getElementById('cancel-changes').addEventListener('click', function () { document.getElementById('changes-form').hidden = true; });
+      document.getElementById('changes-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var t = document.getElementById('changes-text').value.trim();
+        if (!t) { WL.toast('Vui lòng ghi rõ cần sửa gì', 'error'); document.getElementById('changes-text').focus(); return; }
+        done('changes', t);
+      });
+    })();
+  </script>
+</body>
+</html>

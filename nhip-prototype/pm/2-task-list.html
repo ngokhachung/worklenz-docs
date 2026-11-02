@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PM · 2. Task List</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <style>
+    .group-head td { background: #fafafa; font-weight: 600; cursor: pointer; user-select: none; }
+    .group-head .caret { display: inline-block; width: 14px; transition: transform 150ms; }
+    .group-head.collapsed .caret { transform: rotate(-90deg); }
+    .group-bar { display: inline-block; width: 4px; height: 14px; border-radius: 2px; margin: 0 8px -2px 0; }
+    .assign-btn { display: inline-flex; align-items: center; gap: 6px; border: 1px dashed transparent; background: none; cursor: pointer; padding: 2px 4px; border-radius: 4px; font: inherit; }
+    .assign-btn:hover { border-color: var(--border-2); }
+    .assign-btn.none { border-color: var(--border-2); color: var(--text-3); }
+    .menu { position: absolute; z-index: 20; width: 260px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow); padding: 4px; }
+    .menu button { display: flex; width: 100%; align-items: center; gap: 8px; padding: 6px 8px; border: none; background: none; text-align: left; cursor: pointer; border-radius: 4px; font: inherit; font-size: 13px; }
+    .menu button:hover { background: var(--primary-bg); }
+    .menu .load { margin-left: auto; font-size: 11px; }
+    .bulk { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 25; display: flex; gap: 8px; align-items: center; background: #262626; color: #fff; padding: 8px 12px; border-radius: 10px; box-shadow: var(--shadow); }
+    .bulk[hidden] { display: none; }
+    .bulk select, .bulk .btn { height: 28px; font-size: 13px; }
+    .bulk .btn { background: #434343; border-color: #595959; color: #fff; }
+    .icons { color: var(--text-3); font-size: 12px; margin-left: 6px; }
+    tr.flash td { animation: flash 1.4s ease-out; }
+    @keyframes flash { from { background: #e6f4ff; } to { background: transparent; } }
+  </style>
+</head>
+<body data-root="../" data-role="pm" data-step="2" data-area="projects" data-rail="none">
+  <main>
+    <div data-project-header="Task List"></div>
+    <div class="row wrap mb16">
+      <span class="epic" data-epic="E05"></span>
+      <input class="input" id="search" placeholder="Tìm task… (phím /)" style="width:220px" aria-label="Tìm task">
+      <span class="muted">Nhóm theo</span>
+      <div class="seg"><button class="active">Status</button><button data-inert>Priority</button><button data-inert>Phase</button></div>
+      <label class="row small" style="gap:6px"><input type="checkbox" id="only-unassigned"> Chỉ việc chưa giao</label>
+      <span class="spacer"></span>
+      <button class="btn sm" data-inert>Hiện cột</button><button class="btn sm" data-inert>Export CSV</button>
+    </div>
+    <div class="alert info mb16" id="unassigned-hint"><span>Có <b id="un-count">3</b> task chưa giao. Bấm vào ô <b>“＋ Giao”</b> để chọn người, có hiển thị số việc mỗi người đang ôm.</span></div>
+
+    <div class="table-wrap" style="position:relative">
+      <table class="table" id="tbl">
+        <thead><tr><th style="width:34px"></th><th style="width:72px">Key</th><th>Task</th><th>Người làm</th><th>Priority</th><th>Phase</th><th>Hạn</th><th class="num">Ước lượng</th><th style="width:120px">Tiến độ</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+
+    <div class="bulk" id="bulk" hidden role="toolbar" aria-label="Thao tác hàng loạt">
+      <span class="epic" data-epic="E04"></span>
+      <b id="bulk-n">0</b>&nbsp;task đã chọn
+      <select class="select" id="bulk-status" style="width:150px" aria-label="Đổi status"><option value="">Đổi status…</option><option value="todo">Cần làm</option><option value="doing">Đang làm</option><option value="review">Chờ duyệt</option><option value="done">Hoàn thành</option></select>
+      <select class="select" id="bulk-assign" style="width:150px" aria-label="Gán người"><option value="">Gán người…</option></select>
+      <button class="btn" data-bulk="Đặt hạn">Đặt hạn</button>
+      <button class="btn" data-bulk="Tạo task template">Tạo template</button>
+      <button class="btn" data-bulk="Archive">Archive</button>
+      <button class="btn" id="bulk-clear" aria-label="Bỏ chọn">✕</button>
+    </div>
+    <div class="menu" id="assign-menu" hidden></div>
+  </main>
+
+  <aside class="notes">
+    <b>Quốc Bảo chia việc cho nhóm.</b>
+    <ul>
+      <li>Task nhóm theo status; bấm vào tiêu đề nhóm để thu gọn.</li>
+      <li>Bấm <b>＋ Giao</b> ở <b>WEB-15</b>: danh sách người kèm số việc đang mở. Chọn <b>Thảo Vy</b>, và cô nhận thông báo (đã thấy ở bước 4 của Thành viên).</li>
+      <li>Tích nhiều dòng: thanh <b>thao tác hàng loạt</b> hiện ra để đổi status, gán người hoặc tạo template.</li>
+      <li>Gõ vào ô tìm kiếm để lọc nhanh.</li>
+    </ul>
+    <b>Câu hỏi để chốt:</b> Task List và Board (E05) là MVP. Có cần cột tuỳ biến (custom field, E09) ngay từ đầu, ví dụ “Mã hợp đồng” hay “Hạng mục”?
+  </aside>
+
+  <script src="../assets/prototype.js"></script>
+  <script>
+    (function () {
+      var A = WL.avatar, P = WL.PEOPLE;
+      var GROUPS = [
+        { id: 'todo', name: 'Cần làm', color: '#8c8c8c' },
+        { id: 'doing', name: 'Đang làm', color: '#1890ff' },
+        { id: 'review', name: 'Chờ duyệt', color: '#fa8c16' },
+        { id: 'done', name: 'Hoàn thành', color: '#52c41a' }
+      ];
+      var PH = { ks: ['gray', 'Khảo sát'], tk: ['purple', 'Thiết kế'], lt: ['blue', 'Lập trình'], kt: ['orange', 'Kiểm thử'], bg: ['green', 'Bàn giao'] };
+      var PR = { low: 'Low', medium: 'Medium', high: 'High', critical: 'Critical' };
+      var tasks = [
+        { key: 'WEB-15', name: 'Thiết kế trang Liên hệ', st: 'todo', who: null, pr: 'medium', ph: 'tk', due: '07/11', est: '6g', prog: 0, hint: true },
+        { key: 'WEB-14', name: 'Code giao diện trang chủ', st: 'todo', who: 'anh', pr: 'high', ph: 'lt', due: '13/11', est: '16g', prog: 0, icons: '⛔ bị chặn bởi WEB-12' },
+        { key: 'WEB-18', name: 'Kiểm thử form liên hệ', st: 'todo', who: null, pr: 'low', ph: 'kt', due: '20/11', est: '4g', prog: 0 },
+        { key: 'WEB-21', name: 'Tối ưu SEO on-page', st: 'todo', who: null, pr: 'medium', ph: 'lt', due: '27/11', est: '8g', prog: 0 },
+        { key: 'WEB-25', name: 'Go-live và bàn giao', st: 'todo', who: 'bao', pr: 'critical', ph: 'bg', due: '31/12', est: '4g', prog: 0 },
+        { key: 'WEB-12', name: 'Thiết kế trang chủ v2', st: 'doing', who: 'vy', pr: 'high', ph: 'tk', due: '03/11', est: '8g', prog: 67, icons: '☑ 2/3 · 💬 3 · 📎 2' },
+        { key: 'WEB-9', name: 'Bộ icon mới', st: 'doing', who: 'vy', pr: 'medium', ph: 'tk', due: '01/11', est: '10g', prog: 60, icons: '☑ 5/8' },
+        { key: 'WEB-20', name: 'API đăng ký nhận tin', st: 'doing', who: 'long', pr: 'medium', ph: 'lt', due: '06/11', est: '4g', prog: 80, icons: '⏱ đã log 6g' },
+        { key: 'WEB-11', name: 'Nội dung trang Giới thiệu', st: 'review', who: 'bao', pr: 'medium', ph: 'ks', due: '04/11', est: '3g', prog: 100 },
+        { key: 'WEB-6', name: 'Moodboard và bảng màu', st: 'done', who: 'vy', pr: 'medium', ph: 'ks', due: '28/10', est: '6g', prog: 100 },
+        { key: 'WEB-3', name: 'Sitemap và luồng người dùng', st: 'done', who: 'bao', pr: 'high', ph: 'ks', due: '27/10', est: '5g', prog: 100 }
+      ];
+      var openLoad = { vy: 6, anh: 4, long: 7, nam: 2, bao: 3 };
+      var collapsed = { done: true };
+      var selected = {};
+      var flashKey = null;
+      var rowsEl = document.getElementById('rows');
+
+      function visible(t) {
+        var q = document.getElementById('search').value.trim().toLowerCase();
+        if (q && (t.name + ' ' + t.key).toLowerCase().indexOf(q) < 0) return false;
+        if (document.getElementById('only-unassigned').checked && t.who) return false;
+        return true;
+      }
+      function render() {
+        var html = '';
+        GROUPS.forEach(function (g) {
+          var list = tasks.filter(function (t) { return t.st === g.id && visible(t); });
+          html += '<tr class="group-head' + (collapsed[g.id] ? ' collapsed' : '') + '" data-group="' + g.id + '"><td><input type="checkbox" data-selgroup="' + g.id + '" aria-label="Chọn cả nhóm ' + g.name + '"></td><td colspan="8"><span class="caret">▾</span><span class="group-bar" style="background:' + g.color + '"></span>' + g.name + ' <span class="muted" style="font-weight:400">(' + list.length + ')</span></td></tr>';
+          if (collapsed[g.id]) return;
+          list.forEach(function (t) {
+            var who = t.who
+              ? '<button class="assign-btn" data-assign="' + t.key + '">' + A(t.who) + ' ' + P[t.who].name + '</button>'
+              : '<button class="assign-btn none' + (t.hint ? ' hint-pulse' : '') + '" data-assign="' + t.key + '">＋ Giao</button>';
+            html += '<tr data-key="' + t.key + '"' + (t.key === flashKey ? ' class="flash"' : '') + '><td><input type="checkbox" data-sel="' + t.key + '"' + (selected[t.key] ? ' checked' : '') + ' aria-label="Chọn ' + t.key + '"></td>' +
+              '<td class="key">' + t.key + '</td><td><b style="font-weight:500">' + t.name + '</b>' + (t.icons ? '<span class="icons">' + t.icons + '</span>' : '') + '</td>' +
+              '<td>' + who + '</td><td><span class="prio ' + t.pr + '">' + PR[t.pr] + '</span></td>' +
+              '<td><span class="tag ' + PH[t.ph][0] + '">' + PH[t.ph][1] + '</span></td><td>' + t.due + '</td><td class="num">' + t.est + '</td>' +
+              '<td><span class="row"><span class="progress' + (t.prog === 100 ? ' green' : '') + '" style="flex:1"><span style="width:' + t.prog + '%"></span></span><span class="small muted">' + t.prog + '%</span></span></td></tr>';
+          });
+        });
+        rowsEl.innerHTML = html;
+        var un = tasks.filter(function (t) { return !t.who; }).length;
+        document.getElementById('un-count').textContent = un;
+        document.getElementById('unassigned-hint').hidden = un === 0;
+        var n = Object.keys(selected).filter(function (k) { return selected[k]; }).length;
+        document.getElementById('bulk').hidden = n === 0;
+        document.getElementById('bulk-n').textContent = n;
+        flashKey = null;
+      }
+
+      // Assignee menu
+      var menu = document.getElementById('assign-menu');
+      var menuFor = null;
+      function openMenu(btn) {
+        menuFor = btn.dataset.assign;
+        var r = btn.getBoundingClientRect();
+        menu.style.position = 'fixed';
+        menu.style.left = r.left + 'px';
+        menu.style.top = (r.bottom + 4) + 'px';
+        menu.innerHTML = '<div class="small muted" style="padding:4px 8px">Giao ' + menuFor + ' cho…</div>' + ['vy', 'anh', 'long', 'nam', 'bao'].map(function (id) {
+          var load = openLoad[id];
+          var cls = load >= 7 ? 'red' : (load >= 5 ? 'orange' : 'green');
+          return '<button data-pick="' + id + '">' + A(id) + '<span><b>' + P[id].name + '</b><br><span class="muted small">' + P[id].title + '</span></span><span class="load tag ' + cls + '">' + load + ' task mở</span></button>';
+        }).join('') + '<button data-inert>✉ Mời email mới vào project…</button>';
+        menu.hidden = false;
+      }
+      document.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-assign]');
+        if (btn) { openMenu(btn); return; }
+        var pick = e.target.closest('[data-pick]');
+        if (pick && menuFor) {
+          var t = tasks.filter(function (x) { return x.key === menuFor; })[0];
+          if (t.who) openLoad[t.who] -= 1;
+          t.who = pick.dataset.pick; t.hint = false;
+          openLoad[t.who] += 1;
+          flashKey = t.key;
+          menu.hidden = true;
+          render();
+          WL.toast('Đã giao ' + t.key + ' cho ' + P[t.who].name + '. ' + P[t.who].name + ' nhận thông báo.');
+          return;
+        }
+        if (!e.target.closest('#assign-menu')) menu.hidden = true;
+      });
+
+      rowsEl.addEventListener('click', function (e) {
+        var gh = e.target.closest('.group-head');
+        if (gh && !e.target.closest('input')) { collapsed[gh.dataset.group] = !collapsed[gh.dataset.group]; render(); }
+      });
+      rowsEl.addEventListener('change', function (e) {
+        if (e.target.dataset.sel) { selected[e.target.dataset.sel] = e.target.checked; render(); }
+        if (e.target.dataset.selgroup) {
+          var g = e.target.dataset.selgroup, on = e.target.checked;
+          tasks.forEach(function (t) { if (t.st === g && visible(t)) selected[t.key] = on; });
+          collapsed[g] = false;
+          render();
+        }
+      });
+
+      var bulkAssign = document.getElementById('bulk-assign');
+      ['vy', 'anh', 'long', 'nam', 'bao'].forEach(function (id) { var o = document.createElement('option'); o.value = id; o.textContent = P[id].name; bulkAssign.appendChild(o); });
+      function selectedTasks() { return tasks.filter(function (t) { return selected[t.key]; }); }
+      bulkAssign.addEventListener('change', function () {
+        var id = this.value; if (!id) return;
+        var list = selectedTasks();
+        list.forEach(function (t) { if (t.who) openLoad[t.who] -= 1; t.who = id; t.hint = false; openLoad[id] += 1; });
+        this.value = '';
+        WL.toast('Đã giao ' + list.length + ' task cho ' + P[id].name);
+        selected = {}; render();
+      });
+      document.getElementById('bulk-status').addEventListener('change', function () {
+        var st = this.value; if (!st) return;
+        var list = selectedTasks();
+        list.forEach(function (t) { t.st = st; if (st === 'done') t.prog = 100; });
+        collapsed[st] = false;
+        WL.toast('Đã chuyển ' + list.length + ' task sang ' + this.options[this.selectedIndex].text);
+        this.value = '';
+        selected = {}; render();
+      });
+      document.querySelectorAll('[data-bulk]').forEach(function (b) {
+        b.addEventListener('click', function () { WL.toast(b.dataset.bulk + ': ' + selectedTasks().length + ' task (minh hoạ)', 'info'); });
+      });
+      document.getElementById('bulk-clear').addEventListener('click', function () { selected = {}; render(); });
+      document.getElementById('search').addEventListener('input', render);
+      document.getElementById('only-unassigned').addEventListener('change', render);
+      document.addEventListener('keydown', function (e) {
+        if (e.key === '/' && document.activeElement.tagName !== 'INPUT') { e.preventDefault(); document.getElementById('search').focus(); }
+      });
+      render();
+    })();
+  </script>
+</body>
+</html>

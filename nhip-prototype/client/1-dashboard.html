@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Khách hàng · 1. Dashboard</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <style>
+    .todo-card { border: 1px solid #87e8de; background: #e6fffb; border-radius: var(--radius-lg); padding: 14px 16px; display: flex; gap: 14px; align-items: center; margin-bottom: 10px; }
+    .todo-card .ic { width: 40px; height: 40px; border-radius: 10px; background: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 20px; }
+    .milestones { display: flex; margin-top: 14px; }
+    .ms { flex: 1; text-align: center; position: relative; font-size: 12px; }
+    .ms::before { content: ""; position: absolute; top: 9px; left: -50%; right: 50%; height: 2px; background: var(--border-2); z-index: 0; }
+    .ms:first-child::before { display: none; }
+    .ms .dot { position: relative; z-index: 1; width: 20px; height: 20px; border-radius: 50%; margin: 0 auto 6px; background: #fff; border: 2px solid var(--border-2); display: flex; align-items: center; justify-content: center; font-size: 11px; color: #fff; }
+    .ms.done .dot { background: #52c41a; border-color: #52c41a; }
+    .ms.done::before, .ms.current::before { background: #52c41a; }
+    .ms.current .dot { border-color: var(--primary); background: var(--primary); }
+    .ms .d { color: var(--text-3); }
+    .act { display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+    .act:last-child { border-bottom: none; }
+    .kv { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+    .kv div .muted { font-size: 12px; }
+  </style>
+</head>
+<body data-root="../" data-role="client" data-step="1" data-shell="client" data-area="dashboard">
+  <main>
+    <div class="page-head">
+      <div>
+        <h1>Chào Gia Huy 👋 <span class="epic" data-epic="E14"></span></h1>
+        <div class="sub">Hoa Sen Group · 2 project do Sao Mai Digital thực hiện</div>
+      </div>
+    </div>
+
+    <div class="grid side">
+      <div>
+        <div class="card">
+          <div class="card-title">Việc cần bạn xử lý <span class="tag red">2</span></div>
+          <div class="todo-card">
+            <span class="ic">🖼</span>
+            <div style="flex:1"><b>Duyệt giao diện Trang chủ v2</b><div class="small muted">Website Hoa Sen · Quốc Bảo gửi hôm nay · hạn 06/11</div></div>
+            <a class="btn primary hint-pulse" href="2-approval.html">Xem và duyệt →</a>
+          </div>
+          <div class="todo-card" style="background:#fafafa;border-color:var(--border)">
+            <span class="ic">💬</span>
+            <div style="flex:1"><b>1 tin nhắn chưa đọc</b><div class="small muted">Thảo luận “Trang chủ v2” · Quốc Bảo</div></div>
+            <a class="btn" href="3-discussion.html">Mở thảo luận</a>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><span style="width:10px;height:10px;border-radius:3px;background:#eb2f96;display:inline-block"></span> Website Hoa Sen <span class="tag blue">Đang thực hiện</span><span class="right small muted">Cập nhật hôm nay</span></div>
+          <div class="row"><span class="progress" style="flex:1;height:8px"><span style="width:35%"></span></span><b>35%</b></div>
+          <div class="kv">
+            <div><div class="muted">Giai đoạn hiện tại</div><b>Thiết kế</b></div>
+            <div><div class="muted">Dự kiến hoàn thành</div><b>31/12/2026</b></div>
+            <div><div class="muted">Mốc kế tiếp</div><b>Duyệt giao diện · 06/11</b></div>
+          </div>
+          <div class="milestones" aria-label="Các mốc của dự án">
+            <div class="ms done"><div class="dot">✓</div>Khảo sát<div class="d">Đã xong 30/10</div></div>
+            <div class="ms current"><div class="dot"></div><b>Thiết kế</b><div class="d">Đến 07/11</div></div>
+            <div class="ms"><div class="dot"></div>Lập trình<div class="d">Dự kiến 27/11</div></div>
+            <div class="ms"><div class="dot"></div>Kiểm thử<div class="d">Dự kiến 20/12</div></div>
+            <div class="ms"><div class="dot"></div>Bàn giao<div class="d">31/12</div></div>
+          </div>
+          <div class="row mt16 small muted">Liên hệ chính: <span class="person" id="pm-contact"></span></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><span style="width:10px;height:10px;border-radius:3px;background:#13c2c2;display:inline-block"></span> Landing Black Friday <span class="tag orange">Đang lên kế hoạch</span></div>
+          <div class="row"><span class="progress" style="flex:1;height:8px"><span style="width:0%"></span></span><b>0%</b></div>
+          <p class="muted small mt8">Dự kiến bắt đầu 10/11 · hoàn thành 25/11</p>
+        </div>
+      </div>
+
+      <div>
+        <div class="card">
+          <div class="card-title">Hoạt động gần đây</div>
+          <div class="act"><span id="av1"></span><div><b>Sao Mai Digital</b> đăng cập nhật: “Đã xong bản thiết kế trang chủ v2, mời anh duyệt.”<div class="muted small">Hôm nay 16:45</div></div></div>
+          <div class="act"><span id="av2"></span><div><b>Quốc Bảo</b> tải lên <b>Trang chủ v2.fig</b> (phiên bản 2)<div class="muted small">Hôm nay 16:40</div></div></div>
+          <div class="act"><span id="av3"></span><div><b>Quốc Bảo</b> duyệt change request <b>Thêm trang Tuyển dụng</b><div class="muted small">Hôm qua</div></div></div>
+          <div class="act"><span class="av c1">GH</span><div><b>Bạn</b> yêu cầu sửa bản thiết kế v1<div class="muted small">28/10</div></div></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Bạn thấy được gì?</div>
+          <p class="small" style="color:var(--text-2)">Bạn chỉ thấy những task, file và mốc mà Sao Mai đánh dấu “cho khách xem”. Trao đổi nội bộ, giờ công và chi phí nội bộ của team không hiển thị ở đây.</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <aside class="notes">
+    <b>Gia Huy, khách hàng của Hoa Sen, đăng nhập portal bằng mã 6 số gửi qua email (không cần mật khẩu).</b>
+    <ul>
+      <li>Đây là một app riêng mang thương hiệu của khách, không phải giao diện nội bộ.</li>
+      <li>Thấy ngay <b>việc cần xử lý</b>: bản thiết kế chờ duyệt mà Vy vừa làm xong ở chuỗi Thành viên.</li>
+      <li>Tiến độ và các mốc lấy từ phase của project, nên khách không phải hỏi “dự án tới đâu rồi”.</li>
+      <li>Khách <b>không bao giờ</b> thấy comment nội bộ, time log hay chi phí.</li>
+    </ul>
+    <b>Câu hỏi để chốt:</b> Client Portal (E14) đang ở Phase 3 và là module lớn. Hiện khách đang duyệt qua email hay Zalo, và cách đó có gây chậm trễ không?
+  </aside>
+
+  <script src="../assets/prototype.js"></script>
+  <script>
+    document.getElementById('pm-contact').innerHTML = WL.avatar('bao') + ' Quốc Bảo · quoc.bao@saomai.vn';
+    document.getElementById('av1').innerHTML = '<span class="av c2" style="background:#0f766e">SM</span>';
+    document.getElementById('av2').innerHTML = WL.avatar('bao');
+    document.getElementById('av3').innerHTML = WL.avatar('bao');
+  </script>
+</body>
+</html>

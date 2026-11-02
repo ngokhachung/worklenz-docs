@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Thành viên · 1. My Tasks</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <style>
+    .pin { border: none; background: none; cursor: pointer; font-size: 15px; color: var(--border-2); padding: 0 4px; }
+    .pin.on { color: var(--gold); }
+    .task-link { color: var(--text); font-weight: 500; }
+    .task-link:hover { color: var(--primary); }
+    .due.today { color: #d46b08; font-weight: 500; }
+    .due.overdue { color: var(--red); font-weight: 500; }
+    .quick-add { display: flex; gap: 8px; align-items: center; padding: 10px 12px; border-bottom: 1px solid var(--border); background: #fafafa; }
+    .quick-add .input { flex: 1; }
+    .quick-add .select { width: 150px; }
+    tr.new td { animation: rowin 1.2s ease-out; }
+    @keyframes rowin { from { background: #e6f4ff; } to { background: transparent; } }
+  </style>
+</head>
+<body data-root="../" data-role="member" data-step="1" data-area="home" data-rail="My Tasks">
+  <main>
+    <div class="page-head">
+      <div>
+        <h1>My Tasks <span class="epic" data-epic="E08"></span></h1>
+        <div class="sub">Thứ Ba, 03/11/2026 · Việc của bạn từ mọi project</div>
+      </div>
+      <div class="actions">
+        <div class="seg" role="group" aria-label="Phạm vi">
+          <button class="active">Giao cho tôi</button><button data-inert>Tôi giao</button>
+        </div>
+        <button class="btn" data-inert>🏖 Đánh dấu nghỉ phép</button>
+      </div>
+    </div>
+
+    <div class="grid c4 mb16">
+      <div class="stat"><div class="label">Tổng task đang mở</div><div class="value" id="st-total">6</div></div>
+      <div class="stat warn"><div class="label">Đến hạn hôm nay</div><div class="value" id="st-today">2</div></div>
+      <div class="stat"><div class="label">Đang làm</div><div class="value">2</div></div>
+      <div class="stat bad"><div class="label">Quá hạn</div><div class="value">1</div></div>
+    </div>
+
+    <div class="card" style="padding:0">
+      <div class="tabs" style="padding:0 12px;margin:0" id="filter-tabs">
+        <button class="active" data-f="all">Tất cả <span class="count" data-c="all"></span></button>
+        <button data-f="today">Hôm nay <span class="count" data-c="today"></span></button>
+        <button data-f="upcoming">Sắp tới <span class="count" data-c="upcoming"></span></button>
+        <button data-f="overdue">Quá hạn <span class="count" data-c="overdue"></span></button>
+        <button data-f="nodue">Chưa có hạn <span class="count" data-c="nodue"></span></button>
+        <button data-f="pinned">Đã ghim <span class="count" data-c="pinned"></span></button>
+      </div>
+      <form class="quick-add" id="quick-add" autocomplete="off">
+        <span class="epic" data-epic="E04"></span>
+        <input class="input" id="qa-name" placeholder="＋ Thêm task nhanh: gõ tên rồi nhấn Enter" aria-label="Tên task mới">
+        <select class="select" id="qa-due" aria-label="Hạn">
+          <option value="today">Hôm nay</option><option value="tomorrow">Ngày mai</option><option value="nextweek">Tuần sau</option><option value="none">Chưa có hạn</option>
+        </select>
+        <select class="select" id="qa-project" aria-label="Project">
+          <option value="WEB">Website Hoa Sen</option><option value="MKT">Chiến dịch Tết 2027</option><option value="APP">App giao hàng</option>
+        </select>
+        <button class="btn primary" type="submit">Thêm</button>
+      </form>
+      <table class="table" aria-label="Danh sách task của tôi">
+        <thead><tr><th style="width:36px"></th><th style="width:80px">Key</th><th>Task</th><th>Project</th><th>Status</th><th>Priority</th><th>Hạn</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </main>
+
+  <aside class="notes">
+    <b>Thảo Vy (Designer) mở app đầu ngày.</b>
+    <ul>
+      <li>Home → <b>My Tasks</b> gom việc của cô từ cả 3 project, không phải mở từng project.</li>
+      <li>Bấm các tab <b>Hôm nay / Quá hạn</b>; bấm ☆ để ghim việc quan trọng lên đầu.</li>
+      <li>Gõ một task vào ô thêm nhanh rồi Enter: task vào thẳng project đã chọn.</li>
+      <li>Bấm vào <b>WEB-12</b> để mở chi tiết (bước 3), hoặc → để sang Board.</li>
+    </ul>
+    <b>Câu hỏi để chốt:</b> Home cá nhân (E08) đang để Phase 2. Nhân viên có cần trang này ngay từ MVP, hay chỉ cần List/Board trong từng project là đủ?
+  </aside>
+
+  <script src="../assets/prototype.js"></script>
+  <script>
+    (function () {
+      var PROJECTS = { WEB: 'Website Hoa Sen', MKT: 'Chiến dịch Tết 2027', APP: 'App giao hàng' };
+      var STATUS = { todo: ['todo', 'Cần làm'], doing: ['doing', 'Đang làm'], review: ['review', 'Chờ duyệt'] };
+      var tasks = [
+        { key: 'WEB-12', name: 'Thiết kế trang chủ v2', p: 'WEB', st: 'doing', pr: 'high', due: 'today', dueText: 'Hôm nay', pinned: true },
+        { key: 'MKT-4', name: 'Banner Tết cho Facebook', p: 'MKT', st: 'todo', pr: 'high', due: 'today', dueText: 'Hôm nay' },
+        { key: 'WEB-9', name: 'Bộ icon mới', p: 'WEB', st: 'doing', pr: 'medium', due: 'overdue', dueText: '01/11 · trễ 2 ngày' },
+        { key: 'APP-31', name: 'Màn hình theo dõi đơn hàng', p: 'APP', st: 'review', pr: 'medium', due: 'upcoming', dueText: '05/11' },
+        { key: 'WEB-15', name: 'Thiết kế trang Liên hệ', p: 'WEB', st: 'todo', pr: 'medium', due: 'upcoming', dueText: '07/11' },
+        { key: 'MKT-7', name: 'Key visual chiến dịch', p: 'MKT', st: 'todo', pr: 'low', due: 'nodue', dueText: '—' }
+      ];
+      var counters = { WEB: 25, MKT: 7, APP: 31 };
+      var filter = 'all';
+      var rowsEl = document.getElementById('rows');
+
+      function matches(t, f) {
+        if (f === 'all') return true;
+        if (f === 'pinned') return !!t.pinned;
+        return t.due === f;
+      }
+      function render(newKey) {
+        var list = tasks.filter(function (t) { return matches(t, filter); });
+        list.sort(function (a, b) { return (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0); });
+        rowsEl.innerHTML = list.length ? list.map(function (t) {
+          var s = STATUS[t.st];
+          var link = t.key === 'WEB-12'
+            ? '<a class="task-link hint-pulse" style="border-radius:4px;padding:1px 4px" href="3-task-detail.html">' + WL.escapeHtml(t.name) + '</a>'
+            : '<span class="task-link">' + WL.escapeHtml(t.name) + '</span>';
+          return '<tr' + (t.key === newKey ? ' class="new"' : '') + '>' +
+            '<td><button class="pin' + (t.pinned ? ' on' : '') + '" data-pin="' + t.key + '" aria-label="Ghim ' + t.key + '" aria-pressed="' + !!t.pinned + '">' + (t.pinned ? '★' : '☆') + '</button></td>' +
+            '<td class="key">' + t.key + '</td><td>' + link + '</td>' +
+            '<td class="muted">' + PROJECTS[t.p] + '</td>' +
+            '<td><span class="status ' + s[0] + '">' + s[1] + '</span></td>' +
+            '<td><span class="prio ' + t.pr + '">' + { low: 'Low', medium: 'Medium', high: 'High', critical: 'Critical' }[t.pr] + '</span></td>' +
+            '<td class="due ' + t.due + '">' + t.dueText + '</td></tr>';
+        }).join('') : '<tr><td colspan="7" style="text-align:center;padding:32px" class="muted">Không có task nào trong mục này. Thêm task nhanh ở ô phía trên.</td></tr>';
+        document.querySelectorAll('[data-c]').forEach(function (c) {
+          c.textContent = tasks.filter(function (t) { return matches(t, c.dataset.c); }).length;
+        });
+        document.getElementById('st-total').textContent = tasks.length;
+        document.getElementById('st-today').textContent = tasks.filter(function (t) { return t.due === 'today'; }).length;
+      }
+
+      document.getElementById('filter-tabs').addEventListener('click', function (e) {
+        var b = e.target.closest('[data-f]');
+        if (!b) return;
+        filter = b.dataset.f;
+        this.querySelectorAll('[data-f]').forEach(function (x) { x.classList.toggle('active', x === b); });
+        render();
+      });
+      rowsEl.addEventListener('click', function (e) {
+        var b = e.target.closest('[data-pin]');
+        if (!b) return;
+        var t = tasks.filter(function (x) { return x.key === b.dataset.pin; })[0];
+        t.pinned = !t.pinned;
+        WL.toast(t.pinned ? 'Đã ghim ' + t.key + ' lên đầu danh sách' : 'Đã bỏ ghim ' + t.key, 'info');
+        render();
+      });
+      document.getElementById('quick-add').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var name = document.getElementById('qa-name').value.trim();
+        if (!name) { WL.toast('Nhập tên task trước khi thêm', 'error'); return; }
+        var p = document.getElementById('qa-project').value;
+        var dueSel = document.getElementById('qa-due');
+        var dueMap = { today: ['today', 'Hôm nay'], tomorrow: ['upcoming', '04/11'], nextweek: ['upcoming', '10/11'], none: ['nodue', '—'] };
+        var d = dueMap[dueSel.value];
+        counters[p] += 1;
+        var key = p + '-' + counters[p];
+        tasks.unshift({ key: key, name: name, p: p, st: 'todo', pr: 'medium', due: d[0], dueText: d[1] });
+        document.getElementById('qa-name').value = '';
+        WL.toast('Đã tạo ' + key + ' trong ' + PROJECTS[p]);
+        render(key);
+      });
+      render();
+    })();
+  </script>
+</body>
+</html>

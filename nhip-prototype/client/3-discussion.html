@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Khách hàng · 3. Trao đổi và yêu cầu thay đổi</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <style>
+    .threads { border-right: 1px solid var(--border); }
+    .thread { display: block; width: 100%; text-align: left; border: none; background: none; padding: 10px 12px; border-bottom: 1px solid var(--border); cursor: pointer; font: inherit; font-size: 13px; }
+    .thread.active { background: var(--primary-bg); }
+    .thread .unread { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--primary); margin-right: 4px; }
+    .msgs { height: 340px; overflow: auto; padding: 12px 16px; }
+    .msg { display: flex; gap: 10px; margin-bottom: 14px; }
+    .msg.me { flex-direction: row-reverse; }
+    .msg .b { max-width: 78%; background: #fafafa; border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px; font-size: 13px; }
+    .msg.me .b { background: var(--primary-bg); border-color: #87e8de; }
+    .msg .m { font-size: 11px; color: var(--text-3); margin-bottom: 2px; }
+    .compose { display: flex; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--border); }
+    .cr { border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 12px; margin-bottom: 10px; }
+    .cr.new { animation: rowin 1.5s ease-out; }
+    @keyframes rowin { from { background: #e6fffb; } to { background: transparent; } }
+    .stepper { display: flex; gap: 0; margin-top: 10px; }
+    .stepper span { flex: 1; text-align: center; font-size: 10px; padding: 4px 2px; background: #f5f5f5; color: var(--text-3); border-right: 1px solid #fff; }
+    .stepper span:first-child { border-radius: 4px 0 0 4px; }
+    .stepper span:last-child { border-radius: 0 4px 4px 0; border-right: none; }
+    .stepper span.on { background: var(--primary); color: #fff; }
+    .stepper span.cur { background: #13c2c2; color: #fff; font-weight: 600; }
+  </style>
+</head>
+<body data-root="../" data-role="client" data-step="3" data-shell="client" data-area="discussions">
+  <main>
+    <div class="page-head">
+      <div>
+        <h1>Trao đổi và yêu cầu thay đổi <span class="epic" data-epic="E14"></span></h1>
+        <div class="sub">Website Hoa Sen</div>
+      </div>
+      <div class="actions"><button class="btn primary hint-pulse" data-open="#cr-modal" id="cr-open">＋ Gửi yêu cầu thay đổi</button></div>
+    </div>
+
+    <div class="grid side">
+      <div class="card" style="padding:0;display:grid;grid-template-columns:220px minmax(0,1fr)">
+        <div class="threads" id="threads"></div>
+        <div style="display:flex;flex-direction:column">
+          <div class="row" style="padding:10px 16px;border-bottom:1px solid var(--border)"><b id="thread-title"></b><span class="tag" id="thread-type"></span><span class="spacer"></span><span class="epic" data-epic="E12"></span></div>
+          <div class="msgs" id="msgs"></div>
+          <form class="compose" id="compose" autocomplete="off">
+            <input class="input" id="msg" placeholder="Viết tin nhắn… gõ @ để nhắc người của Sao Mai" aria-label="Tin nhắn">
+            <button class="btn" type="button" data-inert aria-label="Đính kèm">📎</button>
+            <button class="btn primary" type="submit">Gửi</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Yêu cầu thay đổi của bạn</div>
+        <div id="crs"></div>
+      </div>
+    </div>
+
+    <div class="overlay" id="cr-modal" hidden role="dialog" aria-modal="true" aria-labelledby="cr-title">
+      <div class="modal">
+        <div class="modal-head"><span id="cr-title">Gửi yêu cầu thay đổi</span><button class="close" data-dismiss aria-label="Đóng">✕</button></div>
+        <form id="cr-form" autocomplete="off">
+          <div class="modal-body">
+            <div class="field"><label for="cr-name">Tiêu đề <span class="req">*</span></label><input class="input" id="cr-name" value="Thêm trang Khuyến mãi Tết"></div>
+            <div class="field"><label for="cr-desc">Mô tả</label><textarea class="input" id="cr-desc" rows="3">Trang riêng cho chương trình quà Tết 2027, có bộ đếm ngược và danh sách hộp quà.</textarea></div>
+            <div class="field"><label for="cr-prio">Mức độ cần thiết</label><select class="select" id="cr-prio"><option>Bình thường</option><option>Gấp, trước 15/12</option></select></div>
+            <div class="muted small" style="border:1px dashed var(--border-2);border-radius:6px;padding:10px;text-align:center">Kéo thả file tham khảo vào đây (tối đa 100MB)</div>
+          </div>
+          <div class="modal-foot"><button class="btn" type="button" data-dismiss>Huỷ</button><button class="btn primary" type="submit">Gửi yêu cầu</button></div>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <aside class="notes">
+    <b>Khách trao đổi và xin thêm việc, tất cả ở một chỗ.</b>
+    <ul>
+      <li>Thảo luận gắn với từng file, task hoặc yêu cầu. Gửi một tin để thấy tin hiện ngay.</li>
+      <li>Phía Sao Mai có thể để <b>comment nội bộ</b> ngay cạnh, nhưng khách không bao giờ thấy.</li>
+      <li>Bấm <b>Gửi yêu cầu thay đổi</b>: yêu cầu mới vào trạng thái Submitted. Team đánh giá, báo <b>giờ và chi phí phát sinh</b> (xem “Thêm trang Tuyển dụng” đã được duyệt), rồi chuyển thành task.</li>
+      <li>Change request đã duyệt có thể sinh báo giá hoặc hoá đơn (E13).</li>
+    </ul>
+    <b>Câu hỏi để chốt:</b> Phát sinh ngoài hợp đồng hiện được ghi nhận ở đâu? Có cần quy trình change request có báo giá ngay trong portal không?
+    <div class="mt8"><b>Hết chuỗi.</b> Bấm → để sang bảng chốt phạm vi.</div>
+  </aside>
+
+  <script src="../assets/prototype.js"></script>
+  <script>
+    (function () {
+      var A = WL.avatar;
+      var THREADS = [
+        { id: 'home', title: 'Trang chủ v2', type: 'File', unread: true, msgs: [
+          { who: 'bao', time: 'Hôm nay 16:45', text: 'Gửi anh Huy bản v2 đã sửa theo góp ý: màu hồng sen, video ở hero, sản phẩm 3 cột và khối cảm nhận khách hàng.' },
+          { who: 'bao', time: 'Hôm nay 16:46', text: 'Nếu anh duyệt trong tuần này, bên em sẽ bắt đầu lập trình từ thứ Năm.' }
+        ] },
+        { id: 'color', title: 'Màu chủ đạo', type: 'Project', msgs: [
+          { who: 'huy', time: '28/10', text: 'Bên mình muốn tông hồng sen, đừng dùng xanh dương nhé.' },
+          { who: 'vy', time: '28/10', text: 'Dạ em gửi 3 phương án hồng sen trong file Moodboard ạ.' }
+        ] },
+        { id: 'golive', title: 'Lịch go-live', type: 'Milestone', msgs: [
+          { who: 'bao', time: '27/10', text: 'Go-live dự kiến 31/12, bàn giao tài khoản quản trị cùng ngày.' }
+        ] }
+      ];
+      var current = 'home';
+      var NAMES = { bao: 'Quốc Bảo · Sao Mai', vy: 'Thảo Vy · Sao Mai', huy: 'Bạn' };
+      function renderThreads() {
+        document.getElementById('threads').innerHTML = THREADS.map(function (t) {
+          return '<button class="thread' + (t.id === current ? ' active' : '') + '" data-t="' + t.id + '">' + (t.unread ? '<span class="unread"></span>' : '') + '<b>' + t.title + '</b><br><span class="muted small">' + t.type + ' · ' + t.msgs[t.msgs.length - 1].time + '</span></button>';
+        }).join('');
+      }
+      function renderMsgs() {
+        var t = THREADS.filter(function (x) { return x.id === current; })[0];
+        t.unread = false;
+        document.getElementById('thread-title').textContent = t.title;
+        document.getElementById('thread-type').textContent = t.type;
+        var box = document.getElementById('msgs');
+        box.innerHTML = t.msgs.map(function (m) {
+          return '<div class="msg' + (m.who === 'huy' ? ' me' : '') + '">' + A(m.who) + '<div class="b"><div class="m">' + NAMES[m.who] + ' · ' + m.time + '</div>' + WL.escapeHtml(m.text) + '</div></div>';
+        }).join('');
+        box.scrollTop = box.scrollHeight;
+        renderThreads();
+      }
+      document.getElementById('threads').addEventListener('click', function (e) {
+        var b = e.target.closest('[data-t]'); if (!b) return;
+        current = b.dataset.t; renderMsgs();
+      });
+      document.getElementById('compose').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var inp = document.getElementById('msg');
+        var v = inp.value.trim();
+        if (!v) return;
+        THREADS.filter(function (x) { return x.id === current; })[0].msgs.push({ who: 'huy', time: 'Vừa xong', text: v });
+        inp.value = '';
+        renderMsgs();
+        WL.toast('Đã gửi. Quốc Bảo nhận thông báo.');
+      });
+      renderMsgs();
+
+      var STEPS = ['Submitted', 'Under Review', 'Approved', 'In Progress', 'Completed'];
+      var crs = [
+        { title: 'Thêm trang Tuyển dụng', step: 2, note: 'Ước lượng của Sao Mai: <b>16 giờ · 9.600.000 ₫</b>. Đã tạo task WEB-27, dự kiến xong 20/11.' },
+        { title: 'Đổi ảnh hero theo mùa', step: 1, note: 'Sao Mai đang đánh giá. Có thể cần thêm thông tin từ bạn.' }
+      ];
+      var fresh = -1;
+      function renderCrs() {
+        document.getElementById('crs').innerHTML = crs.map(function (c, i) {
+          var st = STEPS[c.step];
+          var cls = c.step >= 2 ? 'green' : (c.step === 1 ? 'orange' : 'blue');
+          return '<div class="cr' + (i === fresh ? ' new' : '') + '"><div class="row"><b>' + WL.escapeHtml(c.title) + '</b><span class="spacer"></span><span class="tag ' + cls + '">' + st + '</span></div>' +
+            '<p class="small mt8" style="color:var(--text-2)">' + c.note + '</p>' +
+            '<div class="stepper">' + STEPS.map(function (s, k) { return '<span class="' + (k < c.step ? 'on' : (k === c.step ? 'cur' : '')) + '">' + s + '</span>'; }).join('') + '</div></div>';
+        }).join('');
+        fresh = -1;
+      }
+      renderCrs();
+      document.getElementById('cr-open').addEventListener('click', function () { this.classList.remove('hint-pulse'); });
+      document.getElementById('cr-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var name = document.getElementById('cr-name').value.trim();
+        if (!name) { WL.toast('Nhập tiêu đề yêu cầu', 'error'); return; }
+        crs.unshift({ title: name, step: 0, note: 'Đã gửi tới Sao Mai Digital. Team sẽ đánh giá và báo ước lượng giờ, chi phí cho bạn.' });
+        fresh = 0;
+        renderCrs();
+        document.getElementById('cr-modal').hidden = true;
+        WL.toast('Đã gửi yêu cầu “' + name + '”. Quốc Bảo nhận thông báo.');
+      });
+    })();
+  </script>
+</body>
+</html>

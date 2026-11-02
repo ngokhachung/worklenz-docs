@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin · 4. Finance</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <style>
+    tr.frow { cursor: pointer; }
+    tr.frow td:first-child::before { content: "▸ "; color: var(--text-3); }
+    tr.frow.open td:first-child::before { content: "▾ "; }
+    tr.fdetail > td { background: #fafafa; padding: 12px 16px 16px 36px; }
+    .dist { display: flex; height: 18px; border-radius: 4px; overflow: hidden; }
+    .dist span { display: flex; align-items: center; justify-content: center; color: #fff; font-size: 11px; font-weight: 600; }
+    .used { display: flex; align-items: center; gap: 8px; }
+    .used .progress { flex: 1; }
+  </style>
+</head>
+<body data-root="../" data-role="admin" data-step="4" data-area="finance" data-rail="Overview">
+  <main>
+    <div class="page-head">
+      <div>
+        <h1>Finance <span class="epic" data-epic="E13"></span></h1>
+        <div class="sub">Chi phí = giờ đã log × rate theo job title + chi phí cố định · Tiền tệ: VND</div>
+      </div>
+      <div class="actions">
+        <div class="seg"><button class="active">Theo giờ</button><button data-inert>Theo man-day</button></div>
+        <button class="btn" data-inert>Rate card</button>
+        <button class="btn" data-inert>Export Excel</button>
+      </div>
+    </div>
+
+    <div class="grid c4 mb16" id="stats"></div>
+
+    <div class="grid side mb16">
+      <div class="card">
+        <div class="card-title">Tình trạng ngân sách các project</div>
+        <div class="dist" id="dist"></div>
+        <div class="legend mt8"><span><i style="background:#52c41a"></i>On track ≤ 65%</span><span><i style="background:#fa8c16"></i>Watch 65–100%</span><span><i style="background:#ff4d4f"></i>Over &gt; 100%</span></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Cần chú ý</div>
+        <div class="alert warn mb8"><span><b>App giao hàng</b>: đã dùng 95% ngân sách, mới xong 58% task.</span></div>
+        <div class="alert warn" style="background:#fff1f0;border-color:#ffa39e"><span><b>Website Bảo Minh</b>: vượt ngân sách 8% (đã bàn giao).</span></div>
+      </div>
+    </div>
+
+    <div class="card" style="padding:0">
+      <div class="card-title" style="padding:14px 16px 0">Sức khoẻ tài chính từng project <span class="right muted small" style="padding-right:4px">Bấm một dòng để xem chi phí theo vai trò</span></div>
+      <table class="table">
+        <thead><tr><th>Project</th><th class="num">Ngân sách</th><th class="num">Chi phí thực tế</th><th class="num">Còn lại</th><th style="width:200px">Đã dùng</th><th>Trạng thái</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </main>
+
+  <aside class="notes">
+    <b>Thu Hà xem tiền của từng dự án.</b>
+    <ul>
+      <li>Chi phí tự tính từ giờ nhân viên đã log (các chuỗi trước) nhân với rate của job title, cộng thêm chi phí cố định.</li>
+      <li>Thanh màu cho thấy bao nhiêu project an toàn, cần theo dõi, hay đã vượt.</li>
+      <li>Bấm dòng <b>Website Hoa Sen</b>: chi phí chia theo vai trò, theo rate card (Designer 350.000đ/giờ…), và các khoản cố định.</li>
+      <li>Chỉ Owner, Admin và PM được cấp quyền mới xem được trang này.</li>
+    </ul>
+    <b>Câu hỏi để chốt:</b> Finance (E13) đang ở Phase 3. Công ty có tính giá dự án theo giờ công không? Nếu có, E13 cần E06 (log giờ) chạy ổn định trước.
+  </aside>
+
+  <script src="../assets/prototype.js"></script>
+  <script>
+    (function () {
+      var A = WL.avatar;
+      var fmt = new Intl.NumberFormat('vi-VN');
+      function m(v) { return v >= 1e9 ? (v / 1e9).toLocaleString('vi-VN', { maximumFractionDigits: 2 }) + ' tỷ' : Math.round(v / 1e6).toLocaleString('vi-VN') + ' tr'; }
+      var RATES = { 'Designer': 350000, 'Frontend Developer': 400000, 'Backend Developer': 450000, 'QA Engineer': 300000, 'Project Manager': 500000 };
+      var projects = [
+        { id: 'web', name: 'Website Hoa Sen', color: '#eb2f96', budget: 120e6, roles: [['vy', 'Designer', 34], ['anh', 'Frontend Developer', 0], ['long', 'Backend Developer', 6], ['bao', 'Project Manager', 2]], fixed: [['Font chữ bản quyền (2 họ font)', 2.5e6]] },
+        { id: 'app', name: 'App giao hàng', color: '#1890ff', budget: 180e6, cost: 171e6 },
+        { id: 'mkt', name: 'Chiến dịch Tết 2027', color: '#fa8c16', budget: 80e6, cost: 10.5e6 },
+        { id: 'crm', name: 'CRM nội bộ', color: '#722ed1', budget: 90e6, cost: 52e6 },
+        { id: 'bm', name: 'Website Bảo Minh', color: '#52c41a', budget: 85e6, cost: 91.8e6 },
+        { id: 'bf', name: 'Landing Black Friday', color: '#13c2c2', budget: 20e6, cost: 0 }
+      ];
+      projects.forEach(function (p) {
+        if (p.roles) {
+          p.timeCost = p.roles.reduce(function (s, r) { return s + r[2] * RATES[r[1]]; }, 0);
+          p.fixedCost = p.fixed.reduce(function (s, f) { return s + f[1]; }, 0);
+          p.cost = p.timeCost + p.fixedCost;
+        }
+        p.used = p.cost / p.budget * 100;
+        p.state = p.used > 100 ? ['red', 'Over', 'red'] : (p.used > 65 ? ['orange', 'Watch', 'orange'] : ['green', 'On track', 'green']);
+      });
+      var open = {};
+
+      var totalBudget = projects.reduce(function (s, p) { return s + p.budget; }, 0);
+      var totalCost = projects.reduce(function (s, p) { return s + p.cost; }, 0);
+      document.getElementById('stats').innerHTML =
+        '<div class="stat"><div class="label">Tổng ngân sách</div><div class="value">' + m(totalBudget) + '</div></div>' +
+        '<div class="stat"><div class="label">Chi phí thực tế</div><div class="value">' + m(totalCost) + '</div></div>' +
+        '<div class="stat good"><div class="label">Còn lại</div><div class="value">' + m(totalBudget - totalCost) + '</div></div>' +
+        '<div class="stat"><div class="label">% ngân sách đã dùng</div><div class="value">' + Math.round(totalCost / totalBudget * 100) + '%</div></div>';
+
+      var dist = { green: 0, orange: 0, red: 0 };
+      projects.forEach(function (p) { dist[p.state[2]] += 1; });
+      document.getElementById('dist').innerHTML = [['green', '#52c41a'], ['orange', '#fa8c16'], ['red', '#ff4d4f']].map(function (d) {
+        return dist[d[0]] ? '<span style="width:' + (dist[d[0]] / projects.length * 100) + '%;background:' + d[1] + '">' + dist[d[0]] + ' project</span>' : '';
+      }).join('');
+
+      function render() {
+        document.getElementById('rows').innerHTML = projects.map(function (p) {
+          var row = '<tr class="frow' + (open[p.id] ? ' open' : '') + '" data-id="' + p.id + '" tabindex="0"><td><span class="row" style="display:inline-flex"><span style="width:10px;height:10px;border-radius:3px;background:' + p.color + ';display:inline-block"></span><b>' + p.name + '</b></span></td>' +
+            '<td class="num">' + fmt.format(p.budget) + ' ₫</td><td class="num">' + fmt.format(Math.round(p.cost)) + ' ₫</td>' +
+            '<td class="num" style="' + (p.budget - p.cost < 0 ? 'color:var(--red);font-weight:600' : '') + '">' + fmt.format(Math.round(p.budget - p.cost)) + ' ₫</td>' +
+            '<td><div class="used"><span class="progress ' + p.state[2] + '"><span style="width:' + Math.min(100, p.used) + '%"></span></span><span class="small">' + Math.round(p.used) + '%</span></div></td>' +
+            '<td><span class="tag ' + p.state[0] + '">' + p.state[1] + '</span></td></tr>';
+          if (open[p.id]) {
+            row += '<tr class="fdetail"><td colspan="6">' + (p.roles
+              ? '<div class="grid c2"><div><b class="small">Chi phí theo giờ công (rate card của project)</b><table class="table mt8"><thead><tr><th>Người</th><th>Vai trò</th><th class="num">Rate/giờ</th><th class="num">Giờ đã log</th><th class="num">Chi phí</th></tr></thead><tbody>' +
+                p.roles.map(function (r) { return '<tr><td><span class="person">' + A(r[0]) + ' ' + WL.PEOPLE[r[0]].name + '</span></td><td>' + r[1] + '</td><td class="num">' + fmt.format(RATES[r[1]]) + '</td><td class="num">' + r[2] + 'g</td><td class="num">' + fmt.format(r[2] * RATES[r[1]]) + ' ₫</td></tr>'; }).join('') +
+                '<tr><td colspan="4"><b>Cộng giờ công</b></td><td class="num"><b>' + fmt.format(p.timeCost) + ' ₫</b></td></tr></tbody></table></div>' +
+                '<div><b class="small">Chi phí cố định</b><table class="table mt8"><tbody>' + p.fixed.map(function (f) { return '<tr><td>' + f[0] + '</td><td class="num">' + fmt.format(f[1]) + ' ₫</td></tr>'; }).join('') + '</tbody></table>' +
+                '<div class="alert info mt16"><span>Cách tính: <b>giờ đã log × rate theo giờ</b>. Đổi sang man-day sẽ tính lại toàn bộ project ngay.</span></div></div></div>'
+              : '<span class="muted">Dữ liệu chi tiết của project này không có trong bản demo. Xem Website Hoa Sen.</span>') + '</td></tr>';
+          }
+          return row;
+        }).join('');
+      }
+      var rows = document.getElementById('rows');
+      rows.addEventListener('click', function (e) { var tr = e.target.closest('tr.frow'); if (tr) { open[tr.dataset.id] = !open[tr.dataset.id]; render(); } });
+      rows.addEventListener('keydown', function (e) { var tr = e.target.closest('tr.frow'); if (tr && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); open[tr.dataset.id] = !open[tr.dataset.id]; render(); } });
+      render();
+    })();
+  </script>
+</body>
+</html>

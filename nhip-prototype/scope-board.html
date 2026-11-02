@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Prototype Nhịp · Bảng chốt phạm vi</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <style>
+    .summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    .sum-col { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 12px; min-height: 120px; }
+    .sum-col h3 { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .sum-col h3 .n { margin-left: auto; font-size: 20px; }
+    .sum-col .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .sum-col .chip { padding: 2px 8px; border-radius: 4px; background: var(--bg); font-size: 12px; cursor: pointer; border: 1px solid var(--border); }
+    .sum-col .chip.settled { border-color: #b7eb8f; background: var(--green-bg); }
+    .sum-col .chip.settled::after { content: " ✓"; color: #389e0d; }
+    .scope-table td { vertical-align: top; }
+    .scope-table tr.flash td { animation: flash 2s ease-out; }
+    @keyframes flash { from { background: #fff7cc; } to { background: transparent; } }
+    .scope-table .ename { font-weight: 600; }
+    .scope-table .edesc { color: var(--text-2); font-size: 13px; margin-top: 2px; }
+    .scope-table .estory { color: var(--text-3); font-size: 12px; margin-top: 4px; font-style: italic; }
+    .scope-table .screens a { display: block; font-size: 12px; white-space: nowrap; }
+    .phase-seg button { min-width: 64px; }
+    .phase-seg button.active.p-mvp { background: var(--ph-mvp); }
+    .phase-seg button.active.p-p2 { background: var(--ph-p2); }
+    .phase-seg button.active.p-p3 { background: var(--ph-p3); }
+    .phase-seg button.active.p-drop { background: var(--ph-drop); }
+    .changed { color: #d46b08; font-size: 12px; margin-top: 4px; }
+    .settle { display: inline-flex; gap: 6px; align-items: center; white-space: nowrap; cursor: pointer; }
+    @media (max-width: 1000px) { .summary { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media print { .phase-seg button:not(.active) { display: none; } .scope-table input[type=text] { border: none; } }
+  </style>
+</head>
+<body data-root="" data-shell="none">
+  <main class="landing" style="max-width:1280px">
+    <div class="page-head">
+      <div>
+        <h1>Bảng chốt phạm vi</h1>
+        <p class="lead" style="margin-top:4px">Đề xuất ban đầu lấy từ mục 16 của danh mục tính năng. Đổi giai đoạn, ghi chú lý do và đánh dấu <b>Đã chốt</b> khi các leader đồng ý.</p>
+      </div>
+      <div class="actions no-print">
+        <span class="tag green" id="settled-count"></span>
+        <button class="btn" id="copy-md">Sao chép kết quả</button>
+        <button class="btn" id="download-md">Tải file .md</button>
+        <button class="btn" onclick="window.print()">In</button>
+        <button class="btn danger" id="reset">Khôi phục đề xuất</button>
+      </div>
+    </div>
+
+    <div class="summary" id="summary"></div>
+
+    <div class="table-wrap mt16">
+      <table class="table scope-table">
+        <thead>
+          <tr>
+            <th style="width:64px">Epic</th>
+            <th>Nội dung</th>
+            <th style="width:170px">Xem trên màn hình</th>
+            <th style="width:300px">Giai đoạn</th>
+            <th style="width:220px">Ghi chú của buổi họp</th>
+            <th style="width:96px">Đã chốt</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <p class="muted small mt8">Quyết định được lưu trong trình duyệt này (localStorage). Dùng “Sao chép kết quả” hoặc “Tải file .md” để gửi biên bản sau buổi họp.</p>
+  </main>
+
+  <script src="assets/prototype.js"></script>
+  <script>
+    (function () {
+      var rowsEl = document.getElementById('rows');
+      var summaryEl = document.getElementById('summary');
+
+      // Which prototype screens show each epic.
+      var screensByEpic = {};
+      WL.ROLE_ORDER.forEach(function (roleId) {
+        var f = WL.FLOWS[roleId];
+        f.steps.forEach(function (s, i) {
+          s.epics.forEach(function (code) {
+            (screensByEpic[code] = screensByEpic[code] || []).push({ href: s.file, label: f.label + ' · bước ' + (i + 1) });
+          });
+        });
+      });
+
+      function current() { return WL.decisions(); }
+      function update(code, patch) {
+        var all = current();
+        all[code] = Object.assign({}, all[code] || {}, patch);
+        WL.save(WL.STORE.scope, all);
+        renderSummary();
+      }
+      function phase(code) { return WL.phaseOf(code); }
+
+      function renderRows() {
+        var d = current();
+        rowsEl.innerHTML = WL.EPICS.map(function (e) {
+          var ph = phase(e.code);
+          var dec = d[e.code] || {};
+          var screens = screensByEpic[e.code] || [];
+          return '<tr id="' + e.code + '" data-code="' + e.code + '">' +
+            '<td><span class="epic" data-epic="' + e.code + '"></span></td>' +
+            '<td><div class="ename">' + e.name + ' <span class="muted small" style="font-weight:400">· mục ' + e.src + '</span></div>' +
+            '<div class="edesc">' + e.desc + '</div><div class="estory">“' + e.story + '”</div></td>' +
+            '<td class="screens">' + (screens.length ? screens.map(function (s) { return '<a href="' + s.href + '">' + s.label + '</a>'; }).join('') : '<span class="muted small">Chưa có màn hình, trình bày bằng mô tả</span>') + '</td>' +
+            '<td><div class="seg phase-seg" role="radiogroup" aria-label="Giai đoạn của ' + e.code + '">' + WL.PHASE_ORDER.map(function (p) {
+              return '<button type="button" role="radio" aria-checked="' + (p === ph) + '" class="p-' + p + (p === ph ? ' active' : '') + '" data-phase="' + p + '">' + WL.PHASES[p].label + '</button>';
+            }).join('') + '</div>' +
+            (ph !== e.phase ? '<div class="changed">Đề xuất ban đầu: ' + WL.PHASES[e.phase].label + '</div>' : '') + '</td>' +
+            '<td><input type="text" class="input" data-note placeholder="Lý do, điều kiện…" value="' + WL.escapeHtml(dec.note || '') + '"></td>' +
+            '<td><label class="settle"><input type="checkbox" data-settle ' + (dec.settled ? 'checked' : '') + '> Đã chốt</label></td>' +
+            '</tr>';
+        }).join('');
+        // Badges in the board itself should not link back to the board.
+        rowsEl.querySelectorAll('.epic').forEach(function (b) { b.dataset.bound = '1'; b.style.cursor = 'default'; });
+        WL.renderEpics(rowsEl);
+      }
+
+      function renderSummary() {
+        var d = current();
+        var settled = WL.EPICS.filter(function (e) { return d[e.code] && d[e.code].settled; }).length;
+        document.getElementById('settled-count').textContent = 'Đã chốt ' + settled + '/' + WL.EPICS.length;
+        summaryEl.innerHTML = WL.PHASE_ORDER.map(function (p) {
+          var list = WL.EPICS.filter(function (e) { return phase(e.code) === p; });
+          return '<div class="sum-col"><h3><span class="epic ' + WL.PHASES[p].cls + '" style="cursor:default">' + WL.PHASES[p].label + '</span><span class="n">' + list.length + '</span></h3>' +
+            '<div class="chips">' + (list.length ? list.map(function (e) {
+              return '<span class="chip' + (d[e.code] && d[e.code].settled ? ' settled' : '') + '" data-jump="' + e.code + '" title="' + e.name + '">' + e.code + ' ' + e.short + '</span>';
+            }).join('') : '<span class="muted small">Trống</span>') + '</div></div>';
+        }).join('');
+      }
+
+      rowsEl.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-phase]');
+        if (!btn) return;
+        var code = btn.closest('tr').dataset.code;
+        update(code, { phase: btn.dataset.phase });
+        renderRows();
+        flash(code);
+      });
+      rowsEl.addEventListener('change', function (e) {
+        var tr = e.target.closest('tr');
+        if (!tr) return;
+        if (e.target.matches('[data-settle]')) { update(tr.dataset.code, { settled: e.target.checked }); }
+      });
+      rowsEl.addEventListener('input', function (e) {
+        if (!e.target.matches('[data-note]')) return;
+        var all = current();
+        var code = e.target.closest('tr').dataset.code;
+        all[code] = Object.assign({}, all[code] || {}, { note: e.target.value });
+        WL.save(WL.STORE.scope, all);
+      });
+      summaryEl.addEventListener('click', function (e) {
+        var chip = e.target.closest('[data-jump]');
+        if (chip) jump(chip.dataset.jump);
+      });
+
+      function flash(code) {
+        var tr = document.getElementById(code);
+        if (!tr) return;
+        tr.classList.remove('flash'); void tr.offsetWidth; tr.classList.add('flash');
+      }
+      function jump(code) {
+        var tr = document.getElementById(code);
+        if (!tr) return;
+        tr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        flash(code);
+      }
+
+      function markdown() {
+        var d = current();
+        var lines = ['# Kết quả chốt phạm vi Nhịp', '', 'Ngày: ' + new Date().toLocaleDateString('vi-VN'), ''];
+        WL.PHASE_ORDER.forEach(function (p) {
+          var list = WL.EPICS.filter(function (e) { return phase(e.code) === p; });
+          lines.push('## ' + WL.PHASES[p].label + ' (' + list.length + ')', '');
+          if (!list.length) { lines.push('_Không có_', ''); return; }
+          lines.push('| Epic | Tên | Đã chốt | Ghi chú |', '| --- | --- | --- | --- |');
+          list.forEach(function (e) {
+            var dec = d[e.code] || {};
+            var moved = e.phase !== p ? ' (đề xuất ban đầu: ' + WL.PHASES[e.phase].label + ')' : '';
+            lines.push('| ' + e.code + ' | ' + e.name + moved + ' | ' + (dec.settled ? 'Có' : 'Chưa') + ' | ' + (dec.note || '').replace(/\|/g, '/') + ' |');
+          });
+          lines.push('');
+        });
+        return lines.join('\n');
+      }
+
+      document.getElementById('copy-md').addEventListener('click', function () {
+        var text = markdown();
+        var done = function () { WL.toast('Đã sao chép kết quả dạng Markdown'); };
+        if (navigator.clipboard && window.isSecureContext) {
+          navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text); done(); });
+        } else { fallbackCopy(text); done(); }
+      });
+      function fallbackCopy(text) {
+        var ta = document.createElement('textarea');
+        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); } catch (e) { /* ignore */ }
+        ta.remove();
+      }
+      document.getElementById('download-md').addEventListener('click', function () {
+        var blob = new Blob([markdown()], { type: 'text/markdown;charset=utf-8' });
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'ket-qua-chot-pham-vi.md';
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+      });
+
+      // Two-step reset instead of a blocking confirm dialog.
+      var resetBtn = document.getElementById('reset');
+      var armed = null;
+      resetBtn.addEventListener('click', function () {
+        if (!armed) {
+          resetBtn.textContent = 'Bấm lần nữa để xoá mọi quyết định';
+          armed = setTimeout(function () { resetBtn.textContent = 'Khôi phục đề xuất'; armed = null; }, 3000);
+          return;
+        }
+        clearTimeout(armed); armed = null;
+        resetBtn.textContent = 'Khôi phục đề xuất';
+        WL.save(WL.STORE.scope, {});
+        renderRows(); renderSummary();
+        WL.toast('Đã khôi phục đề xuất ban đầu');
+      });
+
+      renderRows();
+      renderSummary();
+      if (location.hash) setTimeout(function () { jump(location.hash.slice(1)); }, 50);
+    })();
+  </script>
+</body>
+</html>

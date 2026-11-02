@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Prototype Nhịp · Chọn vai trò</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-root="" data-shell="none">
+  <main class="landing">
+    <div class="row wrap" style="gap:12px">
+      <h1>Nhịp: một ngày làm việc theo từng vai trò</h1>
+    </div>
+    <p class="lead">
+      Nhịp là app quản lý dự án nội bộ. Tính năng được phác theo Worklenz (mã nguồn mở), dùng làm bản tham khảo.
+      Cả bốn vai trò cùng làm trên một dự án mẫu:
+      <b>Website Hoa Sen</b> của công ty <b>Sao Mai Digital</b> làm cho khách hàng <b>Hoa Sen Group</b>.
+      Chọn một vai trò để đi qua các màn hình, rồi chốt phạm vi ở bảng cuối.
+    </p>
+
+    <div class="card mt16">
+      <div class="row wrap" style="gap:16px">
+        <b>Đọc nhãn epic:</b>
+        <span class="phase-legend">
+          <span class="epic ph-mvp" style="cursor:default">MVP</span>
+          <span class="epic ph-p2" style="cursor:default">Phase 2</span>
+          <span class="epic ph-p3" style="cursor:default">Phase 3</span>
+          <span class="epic ph-drop" style="cursor:default">Bỏ</span>
+        </span>
+        <span class="muted small">Mỗi nhãn đọc giai đoạn từ bảng chốt phạm vi. Đổi ở bảng thì nhãn trên mọi màn hình đổi theo.</span>
+      </div>
+    </div>
+
+    <div class="role-cards" id="role-cards"></div>
+
+    <div class="card mt16 row wrap" style="gap:16px">
+      <div style="flex:1;min-width:260px">
+        <h3>Bảng chốt phạm vi</h3>
+        <p class="muted mt8">17 epic, đề xuất ban đầu lấy từ mục 16 của danh mục. Trong buổi họp, đổi giai đoạn, ghi chú và đánh dấu "Đã chốt" cho từng epic, rồi sao chép kết quả.</p>
+      </div>
+      <a class="btn primary" href="scope-board.html">Mở bảng chốt phạm vi →</a>
+    </div>
+
+    <div class="card mt16">
+      <h3>Cách trình bày</h3>
+      <ul class="mt8" style="margin-bottom:0;padding-left:20px;color:var(--text-2)">
+        <li>Phím <b>→</b> / <b>←</b>: sang bước sau / bước trước. Bước cuối của mỗi vai trò dẫn sang vai trò kế tiếp.</li>
+        <li>Phím <b>N</b>: ẩn hoặc hiện khung ghi chú trình bày (màu vàng, góc phải dưới). Phím <b>H</b>: về trang này.</li>
+        <li>Mở bằng Chrome hoặc Edge. Mọi thứ chạy offline, dữ liệu là dữ liệu giả.</li>
+        <li>Thao tác thật được trên màn hình: kéo thẻ Board, bấm timer, gửi bình luận, kéo thanh Gantt, chuyển việc trên Planner, duyệt thiết kế…</li>
+      </ul>
+      <div class="row mt16">
+        <button class="btn sm" id="reset-demo">Đặt lại dữ liệu demo</button>
+        <span class="muted small">Xoá timer, giờ đã log và trạng thái đã đọc. Không xoá quyết định trên bảng chốt phạm vi.</span>
+      </div>
+    </div>
+  </main>
+
+  <script src="assets/prototype.js"></script>
+  <script>
+    (function () {
+      var wrap = document.getElementById('role-cards');
+      wrap.innerHTML = WL.ROLE_ORDER.map(function (id, idx) {
+        var f = WL.FLOWS[id];
+        var p = WL.PEOPLE[f.person];
+        var epics = [];
+        f.steps.forEach(function (s) { s.epics.forEach(function (e) { if (epics.indexOf(e) < 0) epics.push(e); }); });
+        return '<a class="role-card" href="' + f.steps[0].file + '">' +
+          '<div class="rc-head"><span class="rc-num" style="background:' + f.color + '">' + (idx + 1) + '</span>' +
+          '<div><h2>' + f.label + '</h2><div class="muted small">' + p.name + ' · ' + p.title + '</div></div></div>' +
+          '<p class="mt8" style="color:var(--text-2)">' + f.intro + '</p>' +
+          '<ol>' + f.steps.map(function (s) { return '<li>' + s.title + '</li>'; }).join('') + '</ol>' +
+          '<div class="rc-epics epic-row">' + epics.sort().map(function (e) { return '<span class="epic" data-epic="' + e + '"></span>'; }).join('') + '</div>' +
+          '</a>';
+      }).join('');
+      // Badges sit inside the card link: let the card navigate, not the badge.
+      wrap.querySelectorAll('.epic').forEach(function (b) { b.dataset.bound = '1'; });
+      WL.renderEpics(wrap);
+
+      document.getElementById('reset-demo').addEventListener('click', function () {
+        [WL.STORE.timer, WL.STORE.logs, WL.STORE.notifRead].forEach(function (k) {
+          try { localStorage.removeItem(k); } catch (e) { /* ignore */ }
+        });
+        WL.toast('Đã đặt lại dữ liệu demo');
+      });
+    })();
+  </script>
+</body>
+</html>

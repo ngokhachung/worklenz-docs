@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PM · 4. Báo cáo nhóm</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <style>
+    .cap-line { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--text); opacity: 0.5; }
+    tr.member { cursor: pointer; }
+    tr.member td:first-child::before { content: "▸ "; color: var(--text-3); }
+    tr.member.open td:first-child::before { content: "▾ "; }
+    tr.detail td { background: #fafafa; padding: 8px 12px 12px 36px; }
+  </style>
+</head>
+<body data-root="../" data-role="pm" data-step="4" data-area="teamreports" data-rail="Tổng quan nhóm">
+  <main>
+    <div class="page-head">
+      <div>
+        <h1>Báo cáo nhóm của Quốc Bảo <span class="epic" data-epic="E10"></span></h1>
+        <div class="sub">Team Lead chỉ thấy những người mình quản lý: Thảo Vy, Minh Anh, Đức Long, Hoàng Nam</div>
+      </div>
+      <div class="actions">
+        <div class="seg" id="period"><button class="active" data-p="week">Tuần này</button><button data-p="last">Tuần trước</button><button data-p="30">30 ngày</button></div>
+        <button class="btn" id="export">Export</button>
+      </div>
+    </div>
+
+    <div class="grid c4 mb16" id="stats"></div>
+
+    <div class="grid side">
+      <div class="card">
+        <div class="card-title">Giờ đã log so với capacity <span class="epic" data-epic="E06"></span>
+          <span class="right legend"><span><i style="background:var(--primary)"></i>Timer</span><span><i style="background:rgba(24,144,255,0.35)"></i>Nhập tay</span><span><i style="background:var(--text);opacity:.5;width:2px"></i>Capacity</span></span>
+        </div>
+        <div class="bars" id="bars"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Cần chú ý</div>
+        <div class="alert warn mb8"><span>⚠ <b>Đức Long</b> log <b>46g/40g</b>, task WEB-20 vượt ước lượng 2 giờ.</span></div>
+        <div class="alert info mb8"><span>ℹ <b>Hoàng Nam</b> mới log <b>22g/40g</b>, còn trống khoảng 18 giờ.</span></div>
+        <div class="alert warn"><span>⏰ <b>WEB-9 Bộ icon mới</b> trễ 2 ngày (Thảo Vy).</span></div>
+        <p class="muted small mt8">Gợi ý: nhờ Admin chuyển bớt việc của Long sang Nam trên Planner (xem chuỗi Admin, bước 2).</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Hiệu suất từng người <span class="right muted small">Bấm vào một dòng để xem log chi tiết</span></div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Thành viên</th><th class="num">Được giao</th><th class="num">Đã xong</th><th class="num">Quá hạn</th><th style="width:160px">Tỉ lệ hoàn thành</th><th class="num">Giờ đã log</th><th class="num">Timer / Tay</th><th>Hoạt động cuối</th></tr></thead>
+          <tbody id="perf"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <aside class="notes">
+    <b>Cuối tuần, Quốc Bảo xem nhóm mình.</b>
+    <ul>
+      <li>Menu trên cùng của Team Lead có thêm <b>My Team Reports</b>, nhưng không có Planner hay Finance. Phân quyền thể hiện ngay ở menu.</li>
+      <li>Biểu đồ: giờ log bằng timer và nhập tay so với capacity 40 giờ/tuần. Long quá tải, Nam còn trống.</li>
+      <li>Bấm vào dòng <b>Đức Long</b> để xem log chi tiết.</li>
+      <li>Đổi kỳ “Tuần trước” để so sánh.</li>
+      <li>Ở Worklenz (bản tham khảo), nút Export của báo cáo nhóm vẫn là “Coming soon”: cần quyết định Nhịp có làm không.</li>
+    </ul>
+    <b>Câu hỏi để chốt:</b> Reporting (E10) đang ở Phase 2. Team Lead có cần báo cáo nhóm ngay từ MVP để quản lý giờ làm không?
+  </aside>
+
+  <script src="../assets/prototype.js"></script>
+  <script>
+    (function () {
+      var A = WL.avatar, P = WL.PEOPLE;
+      var DATA = {
+        week: { stats: [['Thành viên', '4', ''], ['Tổng giờ đã log', '140g', ''], ['Project đang chạy', '3', ''], ['Hoàn thành trung bình', '72%', 'good']],
+          rows: [
+            { id: 'vy', assigned: 10, done: 4, overdue: 1, hrs: 34, timer: 21, manual: 13, last: 'Hôm nay 16:40' },
+            { id: 'anh', assigned: 8, done: 6, overdue: 0, hrs: 38, timer: 30, manual: 8, last: 'Hôm nay 17:05' },
+            { id: 'long', assigned: 9, done: 5, overdue: 0, hrs: 46, timer: 18, manual: 28, last: 'Hôm nay 18:20' },
+            { id: 'nam', assigned: 5, done: 4, overdue: 0, hrs: 22, timer: 10, manual: 12, last: 'Hôm qua 17:30' }
+          ] },
+        last: { stats: [['Thành viên', '4', ''], ['Tổng giờ đã log', '151g', ''], ['Project đang chạy', '3', ''], ['Hoàn thành trung bình', '68%', '']],
+          rows: [
+            { id: 'vy', assigned: 9, done: 5, overdue: 0, hrs: 39, timer: 25, manual: 14, last: '30/10' },
+            { id: 'anh', assigned: 7, done: 5, overdue: 1, hrs: 40, timer: 33, manual: 7, last: '30/10' },
+            { id: 'long', assigned: 8, done: 4, overdue: 1, hrs: 42, timer: 20, manual: 22, last: '30/10' },
+            { id: 'nam', assigned: 6, done: 5, overdue: 0, hrs: 30, timer: 14, manual: 16, last: '29/10' }
+          ] },
+        30: { stats: [['Thành viên', '4', ''], ['Tổng giờ đã log', '598g', ''], ['Project đang chạy', '3', ''], ['Hoàn thành trung bình', '70%', '']],
+          rows: [
+            { id: 'vy', assigned: 31, done: 22, overdue: 1, hrs: 152, timer: 98, manual: 54, last: 'Hôm nay' },
+            { id: 'anh', assigned: 27, done: 21, overdue: 1, hrs: 160, timer: 131, manual: 29, last: 'Hôm nay' },
+            { id: 'long', assigned: 29, done: 19, overdue: 2, hrs: 171, timer: 80, manual: 91, last: 'Hôm nay' },
+            { id: 'nam', assigned: 18, done: 15, overdue: 0, hrs: 115, timer: 52, manual: 63, last: 'Hôm qua' }
+          ] }
+      };
+      var CAP = { week: 40, last: 40, 30: 168 };
+      var LOGS = {
+        vy: [['03/11', 'WEB-12', 'Thiết kế trang chủ v2', '3g 15p'], ['03/11', 'MKT-4', 'Banner Tết', '1g 30p'], ['02/11', 'WEB-9', 'Bộ icon mới', '4g 00p']],
+        anh: [['03/11', 'APP-40', 'Màn hình giỏ hàng', '6g 00p'], ['02/11', 'APP-38', 'Tích hợp bản đồ', '7g 30p']],
+        long: [['03/11', 'WEB-20', 'API đăng ký nhận tin', '6g 00p'], ['03/11', 'APP-22', 'API theo dõi đơn', '4g 30p'], ['02/11', 'WEB-22', 'Cấu hình máy chủ staging', '8g 00p'], ['02/11', 'APP-22', 'API theo dõi đơn', '3g 00p']],
+        nam: [['02/11', 'APP-35', 'Kiểm thử đăng nhập', '4g 00p'], ['30/10', 'WEB-6', 'Rà soát moodboard', '1g 00p']]
+      };
+      var period = 'week', open = {};
+
+      function render() {
+        var d = DATA[period], cap = CAP[period];
+        document.getElementById('stats').innerHTML = d.stats.map(function (s) { return '<div class="stat ' + s[2] + '"><div class="label">' + s[0] + '</div><div class="value">' + s[1] + '</div></div>'; }).join('');
+        var max = Math.max(cap * 1.25, Math.max.apply(null, d.rows.map(function (r) { return r.hrs; })));
+        document.getElementById('bars').innerHTML = d.rows.map(function (r) {
+          var over = r.hrs > cap;
+          return '<div class="bar-row"><span class="person">' + A(r.id) + ' ' + P[r.id].name + '</span>' +
+            '<div class="bar-track" style="overflow:visible"><span style="width:' + (r.timer / max * 100) + '%"></span><span class="b2" style="left:' + (r.timer / max * 100) + '%;width:' + (r.manual / max * 100) + '%"></span>' +
+            '<i class="cap-line" style="left:' + (cap / max * 100) + '%"></i></div>' +
+            '<span class="num" style="text-align:right;' + (over ? 'color:var(--red);font-weight:600' : '') + '">' + r.hrs + 'g/' + cap + 'g</span></div>';
+        }).join('');
+        document.getElementById('perf').innerHTML = d.rows.map(function (r) {
+          var pct = Math.round(r.done / r.assigned * 100);
+          var row = '<tr class="member' + (open[r.id] ? ' open' : '') + '" data-m="' + r.id + '" tabindex="0"><td><span class="person">' + A(r.id) + ' <b>' + P[r.id].name + '</b> <span class="muted small">' + P[r.id].title + '</span></span></td>' +
+            '<td class="num">' + r.assigned + '</td><td class="num">' + r.done + '</td><td class="num" style="' + (r.overdue ? 'color:var(--red);font-weight:600' : '') + '">' + r.overdue + '</td>' +
+            '<td><span class="row"><span class="progress' + (pct >= 70 ? ' green' : (pct < 50 ? ' orange' : '')) + '" style="flex:1"><span style="width:' + pct + '%"></span></span><span class="small">' + pct + '%</span></span></td>' +
+            '<td class="num" style="' + (r.hrs > cap ? 'color:var(--red);font-weight:600' : '') + '">' + r.hrs + 'g</td><td class="num">' + r.timer + 'g / ' + r.manual + 'g</td><td class="muted small">' + r.last + '</td></tr>';
+          if (open[r.id]) {
+            row += '<tr class="detail"><td colspan="8"><b class="small">Log chi tiết</b><table class="table mt8" style="background:transparent"><tbody>' + LOGS[r.id].map(function (l) {
+              return '<tr><td class="small muted" style="width:70px">' + l[0] + '</td><td class="key" style="width:80px">' + l[1] + '</td><td>' + l[2] + '</td><td class="num">' + l[3] + '</td></tr>';
+            }).join('') + '</tbody></table></td></tr>';
+          }
+          return row;
+        }).join('');
+      }
+      document.getElementById('perf').addEventListener('click', function (e) {
+        var tr = e.target.closest('tr.member');
+        if (!tr) return;
+        open[tr.dataset.m] = !open[tr.dataset.m];
+        render();
+      });
+      document.getElementById('perf').addEventListener('keydown', function (e) {
+        var tr = e.target.closest('tr.member');
+        if (tr && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); open[tr.dataset.m] = !open[tr.dataset.m]; render(); }
+      });
+      document.getElementById('period').addEventListener('click', function (e) {
+        var b = e.target.closest('[data-p]');
+        if (!b) return;
+        period = b.dataset.p;
+        this.querySelectorAll('button').forEach(function (x) { x.classList.toggle('active', x === b); });
+        render();
+      });
+      document.getElementById('export').addEventListener('click', function () { WL.toast('Export báo cáo nhóm: chưa có ở Worklenz (bản tham khảo), cần chốt có làm không', 'info'); });
+      render();
+    })();
+  </script>
+</body>
+</html>

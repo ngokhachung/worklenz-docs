@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin · 3. Reporting</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <style>
+    .stack { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: var(--border); min-width: 110px; }
+    .stack span { display: block; height: 100%; }
+    tr.prow { cursor: pointer; }
+    .conf { height: 26px; padding: 0 6px; width: 118px; font-size: 13px; }
+    .health { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; white-space: nowrap; }
+    .health::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--c); }
+    #pdrawer { width: 520px; }
+    #pdrawer .drawer-body { padding: 16px 18px; }
+  </style>
+</head>
+<body data-root="../" data-role="admin" data-step="3" data-area="reporting" data-rail="Overview">
+  <main>
+    <div class="page-head">
+      <div>
+        <h1>Reporting <span class="epic" data-epic="E10"></span></h1>
+        <div class="sub">Toàn công ty · cập nhật real-time</div>
+      </div>
+      <div class="actions">
+        <label class="row small" style="gap:6px"><input type="checkbox"> Tính cả project đã lưu trữ</label>
+        <button class="btn" data-inert>Export Excel</button>
+      </div>
+    </div>
+
+    <div class="grid c4 mb16">
+      <div class="stat"><div class="label">Project</div><div class="value">6 <small>· 4 đang chạy</small></div></div>
+      <div class="stat bad"><div class="label">Project quá hạn</div><div class="value">1</div></div>
+      <div class="stat"><div class="label">Thành viên</div><div class="value">8 <small>· 1 chưa được giao việc</small></div></div>
+      <div class="stat warn"><div class="label">Người có task quá hạn</div><div class="value">3</div></div>
+    </div>
+
+    <div class="row wrap mb16">
+      <div class="seg" id="filter"><button class="active" data-f="all">Tất cả</button><button data-f="risk">Có rủi ro</button><button data-f="overdue">Quá hạn</button></div>
+      <span class="muted small">Delivery confidence:</span>
+      <span class="tag green" id="c-on"></span><span class="tag orange" id="c-risk"></span><span class="tag red" id="c-off"></span><span class="tag" id="c-none"></span>
+      <span class="spacer"></span><span class="muted small">Bấm một dòng để xem chi tiết</span>
+    </div>
+
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Project</th><th>Client</th><th>Status</th><th>Health</th><th>Tiến độ task</th><th class="num">Ước lượng / đã log</th><th>Kết thúc</th><th>PM</th><th>Confidence</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+
+    <aside class="drawer" id="pdrawer" hidden aria-label="Chi tiết project">
+      <div class="drawer-head"><span id="pd-title"></span><span class="spacer"></span><button class="btn sm text" id="pd-close" aria-label="Đóng">✕</button></div>
+      <div class="tabs" data-tabs="pd" style="padding:0 12px;margin:0"><button class="active" data-tab="ov">Overview</button><button data-tab="mem">Thành viên</button></div>
+      <div class="drawer-body">
+        <div data-panel="pd:ov" id="pd-ov"></div>
+        <div data-panel="pd:mem" id="pd-mem" hidden></div>
+      </div>
+    </aside>
+  </main>
+
+  <aside class="notes">
+    <b>Thu Hà nhìn toàn bộ dự án trên một trang.</b>
+    <ul>
+      <li>Thẻ số liệu: project quá hạn, người có task trễ, người chưa được giao việc.</li>
+      <li>Bấm <b>Có rủi ro</b>: chỉ còn <b>App giao hàng</b> và <b>CRM nội bộ</b>.</li>
+      <li>Bấm dòng <b>App giao hàng</b>: đã log 390/400 giờ nhưng mới xong 58%, nên chắc chắn sẽ vượt ước lượng.</li>
+      <li>Đổi Delivery confidence ngay trên bảng; con số thống kê phía trên cập nhật theo.</li>
+    </ul>
+    <b>Câu hỏi để chốt:</b> Ban giám đốc cần những con số nào mỗi tuần? Nếu chỉ cần trang này thì có thể làm một phần E10 trước, phần timesheet và utilization làm sau.
+  </aside>
+
+  <script src="../assets/prototype.js"></script>
+  <script>
+    (function () {
+      var A = WL.avatar, P = WL.PEOPLE;
+      var HEALTH = { good: ['#52c41a', 'Good'], need: ['#faad14', 'Needs attention'], risk: ['#ff4d4f', 'At risk'], none: ['#bfbfbf', 'Not set'] };
+      var CONF = { on: 'On track', risk: 'At risk', off: 'Off track', none: 'Not set' };
+      var projects = [
+        { id: 'web', name: 'Website Hoa Sen', color: '#eb2f96', client: 'Hoa Sen Group', st: ['blue', 'In Progress'], health: 'good', t: [6, 3, 2], est: 120, log: 42, end: '31/12/2026', left: 'còn 58 ngày', pm: 'bao', conf: 'on',
+          members: [['vy', 6, 2, 1], ['anh', 1, 0, 0], ['long', 1, 0, 0], ['nam', 1, 0, 0], ['bao', 2, 1, 0]] },
+        { id: 'app', name: 'App giao hàng', color: '#1890ff', client: 'Bảo Minh', st: ['blue', 'In Progress'], health: 'risk', t: [9, 12, 29], est: 400, log: 390, end: '15/12/2026', left: 'còn 42 ngày', pm: 'bao', conf: 'risk',
+          members: [['anh', 18, 11, 1], ['long', 16, 9, 2], ['nam', 10, 7, 0], ['vy', 6, 2, 0]] },
+        { id: 'mkt', name: 'Chiến dịch Tết 2027', color: '#fa8c16', client: 'Nội bộ', st: ['blue', 'In Progress'], health: 'need', t: [10, 2, 3], est: 160, log: 30, end: '20/01/2027', left: 'còn 78 ngày', pm: 'ha', conf: 'on',
+          members: [['vy', 7, 2, 0], ['bao', 3, 1, 0]] },
+        { id: 'crm', name: 'CRM nội bộ', color: '#722ed1', client: 'Nội bộ', st: ['orange', 'On Hold'], health: 'need', t: [12, 4, 10], est: 300, log: 120, end: '30/10/2026', left: 'trễ 4 ngày', overdue: true, pm: 'ha', conf: 'off',
+          members: [['long', 12, 6, 3], ['anh', 8, 4, 1]] },
+        { id: 'bm', name: 'Website Bảo Minh', color: '#52c41a', client: 'Bảo Minh', st: ['green', 'Completed'], health: 'good', t: [0, 0, 34], est: 200, log: 215, end: '30/09/2026', left: 'đã xong', pm: 'bao', conf: 'none',
+          members: [['anh', 14, 14, 0], ['vy', 10, 10, 0], ['nam', 10, 10, 0]] },
+        { id: 'bf', name: 'Landing Black Friday', color: '#13c2c2', client: 'Hoa Sen Group', st: ['orange', 'In Planning'], health: 'none', t: [8, 0, 0], est: 40, log: 0, end: '25/11/2026', left: 'còn 22 ngày', pm: 'bao', conf: 'none',
+          members: [] }
+      ];
+      var filter = 'all';
+      function isRisk(p) { return p.health === 'risk' || p.conf === 'risk' || p.conf === 'off'; }
+      function render() {
+        var list = projects.filter(function (p) { return filter === 'all' || (filter === 'risk' ? isRisk(p) : p.overdue); });
+        document.getElementById('rows').innerHTML = list.map(function (p) {
+          var total = p.t[0] + p.t[1] + p.t[2];
+          var pct = Math.round(p.t[2] / total * 100);
+          var over = p.log > p.est;
+          return '<tr class="prow" data-id="' + p.id + '" tabindex="0"><td><span class="row"><span style="width:10px;height:10px;border-radius:3px;background:' + p.color + ';display:inline-block"></span><b>' + p.name + '</b></span></td>' +
+            '<td>' + p.client + '</td><td><span class="tag ' + p.st[0] + '">' + p.st[1] + '</span></td>' +
+            '<td><span class="health" style="--c:' + HEALTH[p.health][0] + '">' + HEALTH[p.health][1] + '</span></td>' +
+            '<td><span class="row"><span class="stack" title="To do ' + p.t[0] + ' · Doing ' + p.t[1] + ' · Done ' + p.t[2] + '"><span style="width:' + (p.t[2] / total * 100) + '%;background:#52c41a"></span><span style="width:' + (p.t[1] / total * 100) + '%;background:#1890ff"></span></span><span class="small muted">' + pct + '%</span></span></td>' +
+            '<td class="num" style="' + (over || (p.log / p.est > 0.9 && pct < 90) ? 'color:var(--red);font-weight:600' : '') + '">' + p.est + 'g / ' + p.log + 'g</td>' +
+            '<td>' + p.end + '<br><span class="small" style="color:' + (p.overdue ? 'var(--red)' : 'var(--text-3)') + '">' + p.left + '</span></td>' +
+            '<td>' + A(p.pm) + '</td>' +
+            '<td><select class="select conf" data-conf="' + p.id + '" aria-label="Delivery confidence của ' + p.name + '">' + Object.keys(CONF).map(function (k) { return '<option value="' + k + '"' + (k === p.conf ? ' selected' : '') + '>' + CONF[k] + '</option>'; }).join('') + '</select></td></tr>';
+        }).join('') || '<tr><td colspan="9" class="muted" style="text-align:center;padding:28px">Không có project nào khớp bộ lọc.</td></tr>';
+        var count = function (k) { return projects.filter(function (p) { return p.conf === k; }).length; };
+        document.getElementById('c-on').textContent = 'On track ' + count('on');
+        document.getElementById('c-risk').textContent = 'At risk ' + count('risk');
+        document.getElementById('c-off').textContent = 'Off track ' + count('off');
+        document.getElementById('c-none').textContent = 'Not set ' + count('none');
+      }
+
+      var drawer = document.getElementById('pdrawer');
+      function openProject(id) {
+        var p = projects.filter(function (x) { return x.id === id; })[0];
+        var total = p.t[0] + p.t[1] + p.t[2];
+        document.getElementById('pd-title').innerHTML = '<span class="row"><span style="width:10px;height:10px;border-radius:3px;background:' + p.color + ';display:inline-block"></span>' + p.name + '</span>';
+        var logPct = Math.round(p.log / p.est * 100), donePct = Math.round(p.t[2] / total * 100);
+        document.getElementById('pd-ov').innerHTML =
+          '<div class="grid c2 mb16"><div class="stat"><div class="label">Task xong</div><div class="value">' + p.t[2] + '<small>/' + total + '</small></div></div>' +
+          '<div class="stat ' + (p.overdue ? 'bad' : '') + '"><div class="label">Kết thúc</div><div class="value" style="font-size:18px">' + p.end + '</div><div class="small muted">' + p.left + '</div></div></div>' +
+          '<div class="card-title">Giờ đã log so với ước lượng</div>' +
+          '<div class="bars"><div class="bar-row"><span>Ước lượng</span><div class="bar-track"><span style="width:100%;background:#d9d9d9"></span></div><span class="num">' + p.est + 'g</span></div>' +
+          '<div class="bar-row"><span>Đã log</span><div class="bar-track"><span style="width:' + Math.min(100, logPct) + '%;background:' + (logPct > donePct + 15 ? 'var(--red)' : 'var(--primary)') + '"></span></div><span class="num">' + p.log + 'g</span></div>' +
+          '<div class="bar-row"><span>Task xong</span><div class="bar-track"><span style="width:' + donePct + '%;background:var(--green)"></span></div><span class="num">' + donePct + '%</span></div></div>' +
+          (logPct > donePct + 15 ? '<div class="alert warn mt16"><span>⚠ Đã dùng <b>' + logPct + '%</b> giờ ước lượng nhưng mới xong <b>' + donePct + '%</b> task. Nên xem lại phạm vi hoặc ngân sách.</span></div>' : '') +
+          '<div class="card-title mt16">Task theo status</div><div class="row wrap"><span class="status todo">Cần làm ' + p.t[0] + '</span><span class="status doing">Đang làm ' + p.t[1] + '</span><span class="status done">Hoàn thành ' + p.t[2] + '</span></div>';
+        document.getElementById('pd-mem').innerHTML = p.members.length
+          ? '<div class="table-wrap"><table class="table"><thead><tr><th>Thành viên</th><th class="num">Được giao</th><th class="num">Xong</th><th class="num">Quá hạn</th></tr></thead><tbody>' +
+            p.members.map(function (m) { return '<tr><td><span class="person">' + A(m[0]) + ' ' + P[m[0]].name + '</span></td><td class="num">' + m[1] + '</td><td class="num">' + m[2] + '</td><td class="num" style="' + (m[3] ? 'color:var(--red);font-weight:600' : '') + '">' + m[3] + '</td></tr>'; }).join('') + '</tbody></table></div>'
+          : '<p class="muted">Chưa có thành viên nào được giao việc trong project này.</p>';
+        drawer.querySelectorAll('[data-tab]').forEach(function (b) { b.classList.toggle('active', b.dataset.tab === 'ov'); });
+        document.getElementById('pd-ov').hidden = false; document.getElementById('pd-mem').hidden = true;
+        drawer.hidden = false;
+        document.body.classList.add('drawer-open');
+      }
+      function closeProject() { drawer.hidden = true; document.body.classList.remove('drawer-open'); }
+      document.getElementById('pd-close').addEventListener('click', closeProject);
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeProject(); });
+
+      var rows = document.getElementById('rows');
+      rows.addEventListener('click', function (e) {
+        if (e.target.closest('select')) return;
+        var tr = e.target.closest('tr.prow'); if (tr) openProject(tr.dataset.id);
+      });
+      rows.addEventListener('keydown', function (e) {
+        var tr = e.target.closest('tr.prow');
+        if (tr && e.key === 'Enter' && !e.target.closest('select')) openProject(tr.dataset.id);
+      });
+      rows.addEventListener('change', function (e) {
+        var sel = e.target.closest('[data-conf]'); if (!sel) return;
+        var p = projects.filter(function (x) { return x.id === sel.dataset.conf; })[0];
+        p.conf = sel.value;
+        render();
+        WL.toast(p.name + ': Delivery confidence → ' + CONF[p.conf]);
+      });
+      document.getElementById('filter').addEventListener('click', function (e) {
+        var b = e.target.closest('[data-f]'); if (!b) return;
+        filter = b.dataset.f;
+        this.querySelectorAll('button').forEach(function (x) { x.classList.toggle('active', x === b); });
+        render();
+      });
+      render();
+    })();
+  </script>
+</body>
+</html>

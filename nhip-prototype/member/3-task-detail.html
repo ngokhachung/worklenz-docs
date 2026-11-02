@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Thành viên · 3. Chi tiết task</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <style>
+    .task-panel { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow); }
+    .tp-head { display: flex; align-items: center; gap: 10px; padding: 14px 20px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+    .tp-head h2 { font-size: 20px; }
+    .tp-body { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); }
+    .tp-main { padding: 16px 20px; border-right: 1px solid var(--border); }
+    .tp-side { padding: 16px 20px; display: flex; flex-direction: column; }
+    .fields { display: grid; grid-template-columns: 120px 1fr 120px 1fr; gap: 10px 12px; align-items: center; font-size: 13px; }
+    .fields .k { color: var(--text-3); }
+    .section-t { font-weight: 600; margin: 18px 0 8px; display: flex; align-items: center; gap: 8px; }
+    .sub-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 4px; }
+    .sub-item:hover { background: #fafafa; }
+    .sub-item.done span.n { text-decoration: line-through; color: var(--text-3); }
+    .file { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 6px; }
+    .file .ic { width: 32px; height: 32px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; color: #fff; font-size: 11px; font-weight: 700; }
+    .comments { flex: 1; overflow: auto; max-height: 420px; }
+    .comment { display: flex; gap: 10px; margin-bottom: 14px; }
+    .comment .bubble { background: #fafafa; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 8px 12px; flex: 1; }
+    .comment .meta { font-size: 12px; color: var(--text-3); }
+    .mention { color: var(--primary); background: var(--primary-bg); border-radius: 3px; padding: 0 2px; font-weight: 500; }
+    .compose { position: relative; border: 1px solid var(--border-2); border-radius: var(--radius-lg); padding: 8px; margin-top: 8px; }
+    .compose textarea { width: 100%; border: none; resize: none; font: inherit; min-height: 54px; outline: none; }
+    .suggest { position: absolute; left: 8px; bottom: 100%; margin-bottom: 4px; width: 240px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); z-index: 5; }
+    .suggest button { display: flex; width: 100%; gap: 8px; align-items: center; padding: 6px 10px; border: none; background: none; cursor: pointer; text-align: left; font-size: 13px; }
+    .suggest button.active, .suggest button:hover { background: var(--primary-bg); }
+    .timer-btn.running { background: var(--red); border-color: var(--red); color: #fff; }
+    .log-row td { font-size: 13px; }
+    @media (max-width: 1100px) { .tp-body { grid-template-columns: minmax(0, 1fr); } .tp-main { border-right: none; } .fields { grid-template-columns: 110px 1fr; } }
+  </style>
+</head>
+<body data-root="../" data-role="member" data-step="3" data-area="projects" data-rail="none">
+  <main>
+    <div data-project-header="Task List"></div>
+
+    <div class="task-panel">
+      <div class="tp-head">
+        <span class="muted">Website Hoa Sen /</span><span class="tag">WEB-12</span>
+        <h2>Thiết kế trang chủ v2</h2>
+        <span class="epic" data-epic="E04"></span>
+        <span class="spacer"></span>
+        <select class="select" id="status" style="width:150px" aria-label="Status">
+          <option value="todo">Cần làm</option><option value="doing" selected>Đang làm</option><option value="review">Chờ duyệt</option><option value="done">Hoàn thành</option>
+        </select>
+        <span class="epic" data-epic="E06"></span>
+        <button class="btn primary timer-btn hint-pulse" id="timer-btn">▶ Bắt đầu timer</button>
+      </div>
+
+      <div class="tabs" data-tabs="task" style="padding:0 20px;margin:0">
+        <button class="active" data-tab="info">Thông tin</button>
+        <button data-tab="time">Time Log <span class="count" id="log-count"></span></button>
+        <button data-tab="activity">Activity Log</button>
+      </div>
+
+      <div data-panel="task:info">
+        <div class="tp-body">
+          <div class="tp-main">
+            <div class="fields">
+              <span class="k">Người làm</span><span class="person" id="f-assignee"></span>
+              <span class="k">Reporter</span><span class="person" id="f-reporter"></span>
+              <span class="k">Hạn</span><span class="due" style="color:#d46b08;font-weight:500">Hôm nay, 17:00</span>
+              <span class="k">Priority</span><span class="prio high">High</span>
+              <span class="k">Phase</span><span><span class="tag purple">Thiết kế</span></span>
+              <span class="k">Labels</span><span><span class="tag blue">UI</span> <span class="tag">Trang chủ</span></span>
+              <span class="k">Ước lượng</span><span>8 giờ</span>
+              <span class="k">Tiến độ</span><span class="row"><span class="progress" style="flex:1"><span id="prog-bar" style="width:67%"></span></span><span id="prog-txt" class="small">67%</span></span>
+              <span class="k">Billable</span><span>✅ Có tính tiền</span>
+              <span class="k">Khi xong, báo</span><span class="person" id="f-notify"></span>
+            </div>
+
+            <div class="section-t">Mô tả</div>
+            <p style="color:var(--text-2)">Thiết kế lại trang chủ theo góp ý bản v1 của khách: màu chủ đạo hồng sen, hero có video ngắn, khối sản phẩm nổi bật dạng 3 cột, thêm khối cảm nhận khách hàng.</p>
+
+            <div class="section-t">Subtask <span class="muted small" id="sub-count"></span></div>
+            <div id="subs"></div>
+            <form id="sub-form" class="row mt8"><input class="input" id="sub-name" placeholder="＋ Thêm subtask rồi Enter" aria-label="Tên subtask"></form>
+
+            <div class="section-t">Phụ thuộc <span class="epic" data-epic="E09"></span></div>
+            <div class="file" style="border-style:dashed"><span class="muted small" style="width:90px">Đang chặn</span><span class="tag">WEB-14</span> Code giao diện trang chủ <span class="spacer"></span><span class="person" id="f-dep-owner"></span></div>
+
+            <div class="section-t">File đính kèm</div>
+            <div class="file"><span class="ic" style="background:#a259ff">FIG</span><div><div>Trang chủ v2.fig</div><div class="muted small">2,4 MB · Thảo Vy · hôm nay 09:12</div></div></div>
+            <div class="file"><span class="ic" style="background:#13c2c2">PNG</span><div><div>hero-v2.png</div><div class="muted small">860 KB · Thảo Vy · hôm nay 09:15</div></div></div>
+            <div class="muted small" style="border:1px dashed var(--border-2);border-radius:6px;padding:10px;text-align:center">Kéo thả file vào đây hoặc dán bằng Ctrl+V</div>
+          </div>
+
+          <div class="tp-side">
+            <div class="section-t" style="margin-top:0">Bình luận <span class="epic" data-epic="E07"></span></div>
+            <div class="comments" id="comments"></div>
+            <div class="compose">
+              <div class="suggest" id="suggest" hidden></div>
+              <textarea id="comment-input" placeholder="Viết bình luận… gõ @ để nhắc tên (Enter để gửi, Shift+Enter xuống dòng)" aria-label="Bình luận"></textarea>
+              <div class="row"><span class="muted small">📎 Đính kèm</span><span class="spacer"></span><button class="btn sm primary" id="send">Gửi</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div data-panel="task:time" hidden style="padding:16px 20px">
+        <div class="grid c3 mb16">
+          <div class="stat"><div class="label">Đã log (gồm subtask)</div><div class="value" id="t-total">—</div></div>
+          <div class="stat"><div class="label">Ước lượng</div><div class="value">8g 00p</div></div>
+          <div class="stat"><div class="label">Còn lại</div><div class="value" id="t-left">—</div></div>
+        </div>
+        <form class="card row wrap" id="log-form" style="gap:10px;align-items:flex-end">
+          <div style="width:150px"><label class="small muted" for="l-dur">Thời lượng</label><input class="input" id="l-dur" placeholder="1:30 hoặc 90 hoặc 1.5"></div>
+          <div style="width:140px"><label class="small muted" for="l-day">Ngày</label><select class="select" id="l-day"><option>Hôm nay</option><option>Hôm qua</option></select></div>
+          <div style="flex:1;min-width:200px"><label class="small muted" for="l-desc">Mô tả công việc</label><input class="input" id="l-desc" placeholder="Bạn đã làm gì?"></div>
+          <label class="row small" style="gap:6px;height:32px"><input type="checkbox" checked> Billable</label>
+          <button class="btn primary" type="submit">Thêm log</button>
+        </form>
+        <div class="table-wrap mt16">
+          <table class="table"><thead><tr><th>Ngày</th><th>Người log</th><th>Nguồn</th><th>Mô tả</th><th class="num">Thời gian</th></tr></thead><tbody id="logs"></tbody></table>
+        </div>
+      </div>
+
+      <div data-panel="task:activity" hidden style="padding:16px 20px">
+        <div class="table-wrap"><table class="table"><tbody>
+          <tr><td class="muted small" style="width:140px">Hôm nay 09:15</td><td><b>Thảo Vy</b> đính kèm <i>hero-v2.png</i></td></tr>
+          <tr><td class="muted small">Hôm nay 08:40</td><td><b>Quốc Bảo</b> đổi hạn từ 05/11 sang <b>03/11 17:00</b></td></tr>
+          <tr><td class="muted small">Hôm qua 16:20</td><td><b>Thảo Vy</b> đổi tiến độ từ 30% sang 60%</td></tr>
+          <tr><td class="muted small">02/11 10:02</td><td><b>Quốc Bảo</b> đổi status từ <span class="status todo">Cần làm</span> sang <span class="status doing">Đang làm</span></td></tr>
+          <tr><td class="muted small">30/10 14:11</td><td><b>Quốc Bảo</b> tạo task và giao cho <b>Thảo Vy</b></td></tr>
+        </tbody></table></div>
+      </div>
+    </div>
+  </main>
+
+  <aside class="notes">
+    <b>Vy làm việc ngay trong task.</b>
+    <ul>
+      <li>Bấm <b>▶ Bắt đầu timer</b>: thanh trên cùng hiện timer đang chạy, kể cả khi sang trang khác. Bấm Dừng để ghi giờ. (Demo: 1 giây = 1 phút.)</li>
+      <li>Tab <b>Time Log</b>: nhập tay “1:30”, “90” hoặc “1.5”, có tổng giờ so với ước lượng.</li>
+      <li>Tích subtask để thấy tiến độ tự tăng.</li>
+      <li>Gõ <b>@</b> trong ô bình luận, chọn <b>Quốc Bảo</b>, rồi Enter: PM nhận thông báo.</li>
+      <li>Tab <b>Activity Log</b> ghi lại mọi thay đổi trên task.</li>
+    </ul>
+    <b>Câu hỏi để chốt:</b> Timer và log giờ (E06) đang ở MVP. Công ty có bắt buộc nhân viên log giờ không? Nếu không, E06 có thể lùi xuống Phase 2.
+  </aside>
+
+  <script src="../assets/prototype.js"></script>
+  <script>
+    (function () {
+      var A = WL.avatar;
+      document.getElementById('f-assignee').innerHTML = A('vy') + ' Thảo Vy';
+      document.getElementById('f-reporter').innerHTML = A('bao') + ' Quốc Bảo';
+      document.getElementById('f-notify').innerHTML = A('bao') + ' Quốc Bảo';
+      document.getElementById('f-dep-owner').innerHTML = A('anh') + ' Minh Anh';
+
+      // ---- Subtasks ----
+      var subs = [
+        { n: 'Hero có video ngắn', d: true },
+        { n: 'Khối sản phẩm nổi bật 3 cột', d: true },
+        { n: 'Khối cảm nhận khách hàng', d: false }
+      ];
+      function renderSubs() {
+        var done = subs.filter(function (s) { return s.d; }).length;
+        document.getElementById('subs').innerHTML = subs.map(function (s, i) {
+          return '<label class="sub-item' + (s.d ? ' done' : '') + '"><input type="checkbox" data-sub="' + i + '"' + (s.d ? ' checked' : '') + '><span class="n">' + WL.escapeHtml(s.n) + '</span><span class="spacer"></span>' + A('vy') + '</label>';
+        }).join('');
+        document.getElementById('sub-count').textContent = done + '/' + subs.length + ' xong';
+        var pct = Math.round(done / subs.length * 100);
+        document.getElementById('prog-bar').style.width = pct + '%';
+        document.getElementById('prog-txt').textContent = pct + '%';
+        return pct;
+      }
+      document.getElementById('subs').addEventListener('change', function (e) {
+        var i = e.target.dataset.sub;
+        if (i == null) return;
+        subs[i].d = e.target.checked;
+        var pct = renderSubs();
+        if (pct === 100) WL.toast('Tiến độ đạt 100%. Chuyển task sang “Chờ duyệt” ở ô Status nhé.', 'info');
+      });
+      document.getElementById('sub-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var inp = document.getElementById('sub-name');
+        if (!inp.value.trim()) return;
+        subs.push({ n: inp.value.trim(), d: false });
+        inp.value = '';
+        renderSubs();
+        WL.toast('Đã thêm subtask');
+      });
+      renderSubs();
+
+      document.getElementById('status').addEventListener('change', function (e) {
+        WL.toast('Status → ' + e.target.options[e.target.selectedIndex].text + '. Người theo dõi task được thông báo.');
+      });
+
+      // ---- Comments with @mention ----
+      var comments = [
+        { who: 'bao', time: '10 phút trước', html: '<span class="mention">@Thảo Vy</span> khách muốn xem bản v2 trước thứ Sáu nhé. Nhớ giữ khối cảm nhận khách hàng.' , react: '👍 1' }
+      ];
+      var commentsEl = document.getElementById('comments');
+      function renderComments() {
+        commentsEl.innerHTML = comments.map(function (c) {
+          var p = WL.PEOPLE[c.who];
+          return '<div class="comment">' + A(c.who, 'lg') + '<div class="bubble"><div class="meta"><b style="color:var(--text)">' + p.name + '</b> · ' + c.time + '</div><div>' + c.html + '</div>' +
+            (c.react ? '<div class="small mt8"><span class="tag">' + c.react + '</span></div>' : '') + '</div></div>';
+        }).join('');
+        commentsEl.scrollTop = commentsEl.scrollHeight;
+      }
+      renderComments();
+
+      var input = document.getElementById('comment-input');
+      var suggest = document.getElementById('suggest');
+      var candidates = ['bao', 'anh', 'long', 'nam', 'ha'];
+      var activeIdx = 0, matchList = [];
+      function mentionQuery() {
+        var before = input.value.slice(0, input.selectionStart);
+        var m = before.match(/@([^\s@]*)$/);
+        return m ? m[1].toLowerCase() : null;
+      }
+      function norm(s) { return s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').toLowerCase(); }
+      function showSuggest() {
+        var q = mentionQuery();
+        if (q == null) { suggest.hidden = true; return; }
+        matchList = candidates.filter(function (id) { return norm(WL.PEOPLE[id].name).indexOf(norm(q)) >= 0; });
+        if (!matchList.length) { suggest.hidden = true; return; }
+        activeIdx = Math.min(activeIdx, matchList.length - 1);
+        suggest.innerHTML = matchList.map(function (id, i) {
+          var p = WL.PEOPLE[id];
+          return '<button type="button" data-pick="' + id + '" class="' + (i === activeIdx ? 'active' : '') + '">' + A(id) + '<span><b>' + p.name + '</b><br><span class="muted small">' + p.title + '</span></span></button>';
+        }).join('');
+        suggest.hidden = false;
+      }
+      function pick(id) {
+        var pos = input.selectionStart;
+        var before = input.value.slice(0, pos).replace(/@([^\s@]*)$/, '@' + WL.PEOPLE[id].name + ' ');
+        input.value = before + input.value.slice(pos);
+        input.focus();
+        input.selectionStart = input.selectionEnd = before.length;
+        suggest.hidden = true;
+      }
+      input.addEventListener('input', function () { activeIdx = 0; showSuggest(); });
+      input.addEventListener('keydown', function (e) {
+        if (!suggest.hidden) {
+          if (e.key === 'ArrowDown') { e.preventDefault(); activeIdx = (activeIdx + 1) % matchList.length; showSuggest(); return; }
+          if (e.key === 'ArrowUp') { e.preventDefault(); activeIdx = (activeIdx - 1 + matchList.length) % matchList.length; showSuggest(); return; }
+          if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); pick(matchList[activeIdx]); return; }
+          if (e.key === 'Escape') { suggest.hidden = true; e.stopPropagation(); return; }
+        }
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+      });
+      suggest.addEventListener('mousedown', function (e) {
+        var b = e.target.closest('[data-pick]');
+        if (b) { e.preventDefault(); pick(b.dataset.pick); }
+      });
+      document.getElementById('send').addEventListener('click', send);
+      function send() {
+        var text = input.value.trim();
+        if (!text) { WL.toast('Bình luận đang trống', 'error'); return; }
+        var mentioned = [];
+        var html = WL.escapeHtml(text).replace(/\n/g, '<br>');
+        candidates.forEach(function (id) {
+          var name = WL.PEOPLE[id].name;
+          if (text.indexOf('@' + name) >= 0) {
+            mentioned.push(name);
+            html = html.split('@' + name).join('<span class="mention">@' + name + '</span>');
+          }
+        });
+        comments.push({ who: 'vy', time: 'vừa xong', html: html });
+        input.value = '';
+        suggest.hidden = true;
+        renderComments();
+        WL.toast(mentioned.length ? 'Đã gửi. ' + mentioned.join(', ') + ' nhận thông báo vì được @mention.' : 'Đã gửi bình luận. Người theo dõi task được thông báo.');
+      }
+
+      // ---- Timer & time logs ----
+      var KEY = 'WEB-12', NAME = 'Thiết kế trang chủ v2';
+      var seedLogs = [
+        { day: 'Hôm qua', who: 'vy', source: 'Thủ công', desc: 'Phác thảo hero và khối sản phẩm', seconds: 3 * 3600 + 15 * 60 },
+        { day: '02/11', who: 'vy', source: 'Timer', desc: 'Chỉnh màu theo góp ý v1', seconds: 2 * 3600 }
+      ];
+      function myLogs() {
+        return WL.timer.logs().filter(function (l) { return l.key === KEY; }).map(function (l) {
+          return { day: 'Hôm nay', who: 'vy', source: l.source, desc: l.desc || 'Làm từ timer', seconds: l.seconds };
+        });
+      }
+      function hm(sec) { var h = Math.floor(sec / 3600), m = Math.round((sec % 3600) / 60); return h + 'g ' + (m < 10 ? '0' : '') + m + 'p'; }
+      function renderLogs() {
+        var all = myLogs().concat(seedLogs);
+        var total = all.reduce(function (s, l) { return s + l.seconds; }, 0);
+        document.getElementById('logs').innerHTML = all.map(function (l) {
+          return '<tr class="log-row"><td>' + l.day + '</td><td class="person">' + A(l.who) + ' ' + WL.PEOPLE[l.who].name + '</td><td><span class="tag ' + (l.source === 'Timer' ? 'green' : 'blue') + '">' + l.source + '</span></td><td>' + WL.escapeHtml(l.desc) + '</td><td class="num">' + hm(l.seconds) + '</td></tr>';
+        }).join('');
+        document.getElementById('t-total').textContent = hm(total);
+        var left = 8 * 3600 - total;
+        var leftEl = document.getElementById('t-left');
+        leftEl.textContent = left >= 0 ? hm(left) : 'Vượt ' + hm(-left);
+        leftEl.style.color = left >= 0 ? '' : 'var(--red)';
+        document.getElementById('log-count').textContent = all.length;
+      }
+      renderLogs();
+
+      var btn = document.getElementById('timer-btn');
+      function paintTimer() {
+        var t = WL.timer.get();
+        if (t && t.key === KEY) {
+          btn.classList.add('running'); btn.classList.remove('hint-pulse');
+          btn.textContent = '■ Dừng · ' + WL.timer.fmt(WL.timer.elapsed());
+        } else {
+          btn.classList.remove('running');
+          btn.textContent = '▶ Bắt đầu timer';
+        }
+      }
+      btn.addEventListener('click', function () {
+        var t = WL.timer.get();
+        if (t && t.key === KEY) {
+          var sec = WL.timer.stop();
+          WL.toast('Đã ghi ' + hm(sec) + ' vào WEB-12 từ timer');
+          renderLogs();
+        } else {
+          if (t) { WL.toast('Đã dừng timer của ' + t.key + ' để chạy timer mới', 'info'); WL.timer.stop(); }
+          WL.timer.start(KEY, NAME);
+          WL.toast('Timer đang chạy cho WEB-12. Thanh trên cùng hiện đồng hồ.', 'info');
+        }
+        paintTimer();
+      });
+      setInterval(paintTimer, 1000);
+      paintTimer();
+
+      function parseDuration(s) {
+        s = s.trim().replace(',', '.');
+        if (!s) return 0;
+        if (/^\d+:\d{1,2}$/.test(s)) { var p = s.split(':'); return (+p[0]) * 3600 + (+p[1]) * 60; }
+        if (/^\d+\.\d+$/.test(s)) return Math.round(parseFloat(s) * 3600);
+        if (/^\d+$/.test(s)) { var n = +s; return n <= 12 ? n * 3600 : (n >= 100 ? Math.floor(n / 100) * 3600 + (n % 100) * 60 : n * 60); }
+        return 0;
+      }
+      document.getElementById('log-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var sec = parseDuration(document.getElementById('l-dur').value);
+        if (sec <= 0) { WL.toast('Thời lượng phải lớn hơn 0. Ví dụ: 1:30, 90 hoặc 1.5', 'error'); return; }
+        var desc = document.getElementById('l-desc').value.trim() || 'Log thủ công';
+        var day = document.getElementById('l-day').value;
+        if (day === 'Hôm nay') {
+          var logs = WL.timer.logs();
+          logs.unshift({ key: KEY, name: NAME, seconds: sec, source: 'Thủ công', desc: desc, at: Date.now() });
+          WL.save(WL.STORE.logs, logs);
+        } else {
+          seedLogs.unshift({ day: day, who: 'vy', source: 'Thủ công', desc: desc, seconds: sec });
+        }
+        this.reset();
+        renderLogs();
+        WL.toast('Đã thêm ' + hm(sec) + ' vào WEB-12');
+      });
+    })();
+  </script>
+</body>
+</html>

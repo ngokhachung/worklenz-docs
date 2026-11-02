@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Thành viên · 4. Thông báo và cuối ngày</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <style>
+    .email { border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; font-size: 13px; }
+    .email .e-head { background: #fafafa; padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--text-2); }
+    .email .e-body { padding: 12px; }
+    .email h4 { margin: 10px 0 4px; font-size: 13px; }
+    .email ul { margin: 0; padding-left: 18px; }
+    .reply { display: flex; gap: 8px; margin-top: 8px; }
+  </style>
+</head>
+<body data-root="../" data-role="member" data-step="4" data-area="home" data-rail="Overview">
+  <main>
+    <div class="page-head">
+      <div>
+        <h1>Chào buổi chiều, Thảo Vy 👋 <span class="epic" data-epic="E08"></span></h1>
+        <div class="sub">Thứ Ba, 03/11/2026 · Còn 1 việc đến hạn hôm nay</div>
+      </div>
+      <div class="actions"><button class="btn" data-inert>Tuỳ biến Home</button></div>
+    </div>
+
+    <div class="grid c4 mb16">
+      <div class="stat"><div class="label">Task hôm nay</div><div class="value">2 <small>· 1 đã xong</small></div></div>
+      <div class="stat bad"><div class="label">Quá hạn</div><div class="value">1</div></div>
+      <div class="stat good"><div class="label">Hoàn thành tuần này</div><div class="value">4</div></div>
+      <div class="stat"><div class="label">Focus time hôm nay</div><div class="value" id="focus">—</div></div>
+    </div>
+
+    <div class="grid side">
+      <div>
+        <div class="card">
+          <div class="card-title">Giờ đã log hôm nay <span class="epic" data-epic="E06"></span><span class="right muted small" id="billable"></span></div>
+          <div class="table-wrap">
+            <table class="table"><thead><tr><th>Task</th><th>Nguồn</th><th>Mô tả</th><th class="num">Thời gian</th></tr></thead><tbody id="today-logs"></tbody></table>
+          </div>
+          <p class="muted small mt8">Giờ ở đây cũng chảy vào báo cáo của PM, Planner và chi phí dự án.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Mentions <span class="epic" data-epic="E07"></span></div>
+          <div class="row" style="align-items:flex-start;gap:10px">
+            <span id="mention-av"></span>
+            <div style="flex:1">
+              <div><b>Quốc Bảo</b> <span class="muted small">trong WEB-12 · 10 phút trước</span></div>
+              <div><span style="color:var(--primary);font-weight:500">@Thảo Vy</span> khách muốn xem bản v2 trước thứ Sáu nhé.</div>
+              <form class="reply" id="reply-form"><input class="input" id="reply" placeholder="Trả lời ngay tại đây…" aria-label="Trả lời"><button class="btn primary" type="submit">Trả lời</button></form>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card">
+          <div class="card-title">Tiến độ của tôi</div>
+          <div class="row" style="gap:18px">
+            <div class="donut" style="background:conic-gradient(#52c41a 0 40%, #1890ff 40% 70%, #d9d9d9 70% 100%)"><div class="center">40%<small>đã xong</small></div></div>
+            <div class="small">
+              <div><span class="legend"><span><i style="background:#52c41a"></i>Done 4</span></span></div>
+              <div class="mt8"><span class="legend"><span><i style="background:#1890ff"></i>Doing 3</span></span></div>
+              <div class="mt8"><span class="legend"><span><i style="background:#d9d9d9"></i>To do 3</span></span></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Email nhắc việc lúc 18:00 <span class="epic" data-epic="E07"></span></div>
+          <div class="email">
+            <div class="e-head">Tới: thao.vy@saomai.vn · Chủ đề: <b>Việc của bạn ngày mai (04/11)</b></div>
+            <div class="e-body">
+              <h4>Đến hạn ngày mai</h4><ul><li>WEB-11 Nội dung trang Giới thiệu (theo dõi)</li></ul>
+              <h4>Quá hạn</h4><ul><li style="color:var(--red)">WEB-9 Bộ icon mới · trễ 2 ngày</li></ul>
+              <h4>Sắp tới</h4><ul><li>APP-31 Màn hình theo dõi đơn hàng · 05/11</li></ul>
+              <p class="muted small mt8">Đổi giờ gửi hoặc tắt trong Settings → Notifications.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <aside class="notes">
+    <b>Cuối ngày của Vy.</b>
+    <ul>
+      <li>Ngăn <b>Thông báo</b> tự mở: mention của PM, việc mới được giao, và <b>khách hàng đã duyệt bản thiết kế</b> trên Client Portal (xem ở chuỗi Khách hàng).</li>
+      <li>Bấm “Đánh dấu đã đọc” hoặc “Đọc tất cả”; số đỏ trên chuông giảm theo. Bấm 🔔 để mở lại.</li>
+      <li>Bảng <b>Giờ đã log hôm nay</b> có cả giờ chạy bằng timer ở bước 3.</li>
+      <li>Trả lời mention ngay trên Home, không cần mở task.</li>
+      <li>Email nhắc việc gửi theo lịch, người dùng tự chọn giờ.</li>
+    </ul>
+    <b>Câu hỏi để chốt:</b> Thông báo in-app và email (E07) đang ở MVP. Email digest theo lịch có cần ngay không, hay chỉ cần thông báo trong app?
+  </aside>
+
+  <script src="../assets/prototype.js"></script>
+  <script>
+    (function () {
+      var seed = [
+        { key: 'MKT-4', source: 'Thủ công', desc: 'Phác 3 phương án banner', seconds: 90 * 60, billable: true },
+        { key: 'WEB-9', source: 'Timer', desc: 'Vẽ icon nhóm thanh toán', seconds: 45 * 60, billable: true },
+        { key: 'NỘI BỘ', source: 'Thủ công', desc: 'Họp giao ban sáng', seconds: 30 * 60, billable: false }
+      ];
+      function hm(sec) { var h = Math.floor(sec / 3600), m = Math.round((sec % 3600) / 60); return h + 'g ' + (m < 10 ? '0' : '') + m + 'p'; }
+      var mine = WL.timer.logs().map(function (l) { return { key: l.key, source: l.source, desc: l.desc || 'Làm từ timer', seconds: l.seconds, billable: true, fresh: true }; });
+      var all = mine.concat(seed);
+      var total = all.reduce(function (s, l) { return s + l.seconds; }, 0);
+      var bill = all.filter(function (l) { return l.billable; }).reduce(function (s, l) { return s + l.seconds; }, 0);
+      document.getElementById('today-logs').innerHTML = all.map(function (l) {
+        return '<tr' + (l.fresh ? ' style="background:#f6ffed"' : '') + '><td class="key">' + l.key + '</td><td><span class="tag ' + (l.source === 'Timer' ? 'green' : 'blue') + '">' + l.source + '</span></td><td>' + WL.escapeHtml(l.desc) + (l.fresh ? ' <span class="tag green">mới</span>' : '') + '</td><td class="num">' + hm(l.seconds) + '</td></tr>';
+      }).join('') + '<tr><td colspan="3"><b>Tổng</b></td><td class="num"><b>' + hm(total) + '</b></td></tr>';
+      document.getElementById('focus').innerHTML = hm(total);
+      document.getElementById('billable').textContent = 'Billable ' + hm(bill) + ' · Non-billable ' + hm(total - bill);
+      document.getElementById('mention-av').innerHTML = WL.avatar('bao', 'lg');
+
+      document.getElementById('reply-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var v = document.getElementById('reply').value.trim();
+        if (!v) { WL.toast('Nhập nội dung trả lời', 'error'); return; }
+        this.innerHTML = '<div class="alert success" style="flex:1"><span>Bạn đã trả lời: “' + WL.escapeHtml(v) + '”. Bình luận được thêm vào WEB-12.</span></div>';
+        WL.toast('Đã trả lời Quốc Bảo');
+      });
+
+      document.addEventListener('DOMContentLoaded', function () { WL.openNotifications('member'); });
+    })();
+  </script>
+</body>
+</html>

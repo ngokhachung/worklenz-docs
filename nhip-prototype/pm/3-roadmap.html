@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PM · 3. Roadmap</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <style>
+    :root { --dw: 18px; --rh: 36px; }
+    .gantt { display: grid; grid-template-columns: 340px minmax(0, 1fr); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--card); overflow: hidden; }
+    .g-left { border-right: 1px solid var(--border); }
+    .g-head { height: 52px; border-bottom: 1px solid var(--border); background: #fafafa; }
+    .g-left .g-head { display: flex; align-items: flex-end; padding: 0 12px 8px; font-weight: 500; color: var(--text-2); font-size: 13px; }
+    .g-row { height: var(--rh); display: flex; align-items: center; padding: 0 12px; border-bottom: 1px solid var(--border); font-size: 13px; gap: 8px; white-space: nowrap; overflow: hidden; }
+    .g-row.phase { font-weight: 600; background: #fcfcfc; }
+    .g-row .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+    .g-row .dates { flex-shrink: 0; color: var(--text-3); font-size: 12px; }
+    .g-row.moved .dates { color: #d46b08; font-weight: 600; }
+    .g-right { overflow-x: auto; position: relative; }
+    .g-canvas { position: relative; }
+    .g-weeks, .g-days { display: flex; height: 26px; }
+    .g-weeks div { flex-shrink: 0; border-left: 1px solid var(--border); font-size: 12px; padding: 4px 6px; color: var(--text-2); font-weight: 500; }
+    .g-days div { flex-shrink: 0; width: var(--dw); text-align: center; font-size: 10px; color: var(--text-3); line-height: 26px; }
+    .g-days div.we { color: #bfbfbf; }
+    .g-body { position: relative; }
+    .g-line { height: var(--rh); border-bottom: 1px solid var(--border); }
+    .g-line.phase { background: rgba(0,0,0,0.012); }
+    .weekend { position: absolute; top: 0; bottom: 0; width: var(--dw); background: rgba(0,0,0,0.025); }
+    .today { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--red); z-index: 3; }
+    .today::before { content: "Hôm nay"; position: absolute; top: -2px; left: 4px; font-size: 10px; color: var(--red); font-weight: 600; white-space: nowrap; }
+    .bar { position: absolute; height: 22px; border-radius: 5px; z-index: 4; display: flex; align-items: center; padding: 0 8px; color: #fff; font-size: 11px; font-weight: 600; cursor: grab; user-select: none; white-space: nowrap; overflow: hidden; touch-action: none; }
+    .bar.dragging { cursor: grabbing; box-shadow: 0 4px 12px rgba(0,0,0,0.25); z-index: 6; }
+    .bar.phase-bar { height: 10px; border-radius: 3px; opacity: 0.45; cursor: default; padding: 0; }
+    .bar.moved { outline: 2px solid var(--orange); outline-offset: 1px; }
+    .bar .handle { position: absolute; right: 0; top: 0; bottom: 0; width: 8px; cursor: ew-resize; background: rgba(255,255,255,0.25); }
+    .bar .fill { position: absolute; left: 0; top: 0; bottom: 0; background: rgba(0,0,0,0.18); pointer-events: none; }
+    .bar span { position: relative; }
+    svg.deps { position: absolute; left: 0; top: 0; z-index: 5; pointer-events: none; overflow: visible; }
+    svg.deps path { fill: none; stroke: #8c8c8c; stroke-width: 1.5; }
+    svg.deps path.hot { stroke: var(--orange); stroke-width: 2; }
+  </style>
+</head>
+<body data-root="../" data-role="pm" data-step="3" data-area="projects" data-rail="none">
+  <main>
+    <div data-project-header="Roadmap"></div>
+    <div class="row wrap mb16">
+      <span class="epic" data-epic="E09"></span>
+      <div class="seg"><button class="active">Ngày</button><button data-inert>Tuần</button><button data-inert>Tháng</button><button data-inert>Quý</button></div>
+      <span class="muted">Nhóm theo Phase</span>
+      <span class="spacer"></span>
+      <span class="legend"><span><i style="background:#8c8c8c;height:2px;vertical-align:3px"></i>Phụ thuộc Finish-to-Start</span><span><i style="background:transparent;outline:2px solid #fa8c16"></i>Bị dời theo</span></span>
+      <button class="btn sm" id="reset">Đặt lại lịch</button>
+    </div>
+    <div class="gantt">
+      <div class="g-left"><div class="g-head">Phase / Task</div><div id="left"></div></div>
+      <div class="g-right" id="right"><div class="g-canvas" id="canvas"></div></div>
+    </div>
+    <p class="muted small mt8">Kéo thanh để dời lịch, kéo mép phải để đổi ngày kết thúc. Task phụ thuộc phía sau tự dời theo và được tô viền cam.</p>
+  </main>
+
+  <aside class="notes">
+    <b>PM xếp lịch cho cả dự án.</b>
+    <ul>
+      <li>Mỗi phase là một nhóm; thanh mờ là khoảng thời gian của phase.</li>
+      <li>Đường xám là phụ thuộc: Code trang chủ chỉ bắt đầu khi Thiết kế trang chủ xong.</li>
+      <li>Khách xin thêm 1 tuần: <b>kéo thanh WEB-12 sang phải</b>. WEB-14 và WEB-18 phụ thuộc vào nó nên <b>tự dời theo</b> và được tô cam. Kéo xa hơn (vài tuần) thì cả ngày go-live WEB-25 cũng bị đẩy lùi.</li>
+      <li>Bấm “Đặt lại lịch” để làm lại.</li>
+    </ul>
+    <b>Câu hỏi để chốt:</b> Roadmap/Gantt và dependency (E09) đang ở Phase 2. Với dự án có hạn chót cam kết với khách, có cần đưa lên MVP không?
+  </aside>
+
+  <script src="../assets/prototype.js"></script>
+  <script>
+    (function () {
+      var DW = 18, RH = 36, DAYS = 70;
+      var BASE = new Date(2026, 9, 26); // Monday 26/10/2026
+      var TODAY = 8;                     // 03/11/2026
+      function d(dd, mm) { var y = mm < 6 ? 2027 : 2026; return Math.round((new Date(y, mm - 1, dd) - BASE) / 86400000); }
+      function label(i) { var x = new Date(BASE.getTime() + i * 86400000); return ('0' + x.getDate()).slice(-2) + '/' + ('0' + (x.getMonth() + 1)).slice(-2); }
+
+      var PHASES = [
+        { id: 'ks', name: 'Khảo sát', color: '#8c8c8c' },
+        { id: 'tk', name: 'Thiết kế', color: '#722ed1' },
+        { id: 'lt', name: 'Lập trình', color: '#1890ff' },
+        { id: 'kt', name: 'Kiểm thử', color: '#fa8c16' },
+        { id: 'bg', name: 'Bàn giao', color: '#52c41a' }
+      ];
+      var INITIAL = [
+        { key: 'WEB-3', name: 'Sitemap và luồng người dùng', ph: 'ks', s: d(26, 10), e: d(27, 10), prog: 100 },
+        { key: 'WEB-6', name: 'Moodboard và bảng màu', ph: 'ks', s: d(27, 10), e: d(28, 10), prog: 100 },
+        { key: 'WEB-11', name: 'Nội dung trang Giới thiệu', ph: 'ks', s: d(30, 10), e: d(4, 11), prog: 90 },
+        { key: 'WEB-9', name: 'Bộ icon mới', ph: 'tk', s: d(26, 10), e: d(1, 11), prog: 60 },
+        { key: 'WEB-12', name: 'Thiết kế trang chủ v2', ph: 'tk', s: d(29, 10), e: d(3, 11), prog: 67 },
+        { key: 'WEB-15', name: 'Thiết kế trang Liên hệ', ph: 'tk', s: d(4, 11), e: d(7, 11), prog: 0 },
+        { key: 'WEB-20', name: 'API đăng ký nhận tin', ph: 'lt', s: d(2, 11), e: d(6, 11), prog: 80 },
+        { key: 'WEB-14', name: 'Code giao diện trang chủ', ph: 'lt', s: d(4, 11), e: d(13, 11), prog: 0 },
+        { key: 'WEB-21', name: 'Tối ưu SEO on-page', ph: 'lt', s: d(23, 11), e: d(27, 11), prog: 0 },
+        { key: 'WEB-18', name: 'Kiểm thử toàn site', ph: 'kt', s: d(16, 11), e: d(20, 11), prog: 0 },
+        { key: 'WEB-25', name: 'Go-live và bàn giao', ph: 'bg', s: d(28, 12), e: d(31, 12), prog: 0 }
+      ];
+      var DEPS = [['WEB-12', 'WEB-14'], ['WEB-14', 'WEB-18'], ['WEB-20', 'WEB-18'], ['WEB-18', 'WEB-25']];
+      var tasks, moved = {};
+      function reset() { tasks = INITIAL.map(function (t) { return Object.assign({}, t); }); moved = {}; }
+      reset();
+      function byKey(k) { return tasks.filter(function (t) { return t.key === k; })[0]; }
+
+      // Row layout: phase row followed by its tasks.
+      var rows = [];
+      PHASES.forEach(function (p) {
+        rows.push({ type: 'phase', ph: p });
+        INITIAL.filter(function (t) { return t.ph === p.id; }).forEach(function (t) { rows.push({ type: 'task', key: t.key, ph: p }); });
+      });
+      function rowIndex(key) { for (var i = 0; i < rows.length; i++) if (rows[i].key === key) return i; return -1; }
+
+      var left = document.getElementById('left');
+      var canvas = document.getElementById('canvas');
+      var W = DAYS * DW;
+
+      function render() {
+        left.innerHTML = rows.map(function (r) {
+          if (r.type === 'phase') {
+            var span = phaseSpan(r.ph.id);
+            return '<div class="g-row phase"><span style="width:10px;height:10px;border-radius:3px;background:' + r.ph.color + ';display:inline-block;flex-shrink:0"></span><span class="nm">' + r.ph.name + '</span><span class="dates">' + label(span[0]) + ' – ' + label(span[1]) + '</span></div>';
+          }
+          var t = byKey(r.key);
+          return '<div class="g-row' + (moved[t.key] ? ' moved' : '') + '" style="padding-left:30px" title="' + t.key + ' ' + t.name + '"><span class="key muted small" style="flex-shrink:0">' + t.key + '</span><span class="nm">' + t.name + '</span><span class="dates">' + label(t.s) + ' – ' + label(t.e) + '</span></div>';
+        }).join('');
+
+        var weeks = '', days = '', bg = '';
+        for (var w = 0; w < DAYS / 7; w++) weeks += '<div style="width:' + (7 * DW) + 'px">Tuần ' + label(w * 7) + '</div>';
+        for (var i = 0; i < DAYS; i++) {
+          var we = i % 7 === 5 || i % 7 === 6;
+          days += '<div class="' + (we ? 'we' : '') + '">' + new Date(BASE.getTime() + i * 86400000).getDate() + '</div>';
+          if (we) bg += '<div class="weekend" style="left:' + (i * DW) + 'px"></div>';
+        }
+        var lines = rows.map(function (r) { return '<div class="g-line' + (r.type === 'phase' ? ' phase' : '') + '"></div>'; }).join('');
+        var bars = rows.map(function (r, idx) {
+          var top = idx * RH;
+          if (r.type === 'phase') {
+            var span = phaseSpan(r.ph.id);
+            return '<div class="bar phase-bar" style="left:' + (span[0] * DW) + 'px;width:' + ((span[1] - span[0] + 1) * DW) + 'px;top:' + (top + 13) + 'px;background:' + r.ph.color + '"></div>';
+          }
+          var t = byKey(r.key);
+          return '<div class="bar' + (moved[t.key] ? ' moved' : '') + '" data-key="' + t.key + '" tabindex="0" aria-label="' + t.key + ' ' + label(t.s) + ' đến ' + label(t.e) + '" style="left:' + (t.s * DW) + 'px;width:' + ((t.e - t.s + 1) * DW) + 'px;top:' + (top + 7) + 'px;background:' + r.ph.color + '">' +
+            '<div class="fill" style="width:' + t.prog + '%"></div><span>' + t.key + '</span><div class="handle" data-handle></div></div>';
+        }).join('');
+        canvas.style.width = W + 'px';
+        canvas.innerHTML = '<div class="g-head"><div class="g-weeks">' + weeks + '</div><div class="g-days">' + days + '</div></div>' +
+          '<div class="g-body" style="height:' + (rows.length * RH) + 'px">' + bg + lines +
+          '<div class="today" style="left:' + (TODAY * DW + DW / 2) + 'px"></div>' + bars + depsSvg() + '</div>';
+      }
+      function phaseSpan(ph) {
+        var list = tasks.filter(function (t) { return t.ph === ph; });
+        return [Math.min.apply(null, list.map(function (t) { return t.s; })), Math.max.apply(null, list.map(function (t) { return t.e; }))];
+      }
+      function depsSvg() {
+        var paths = DEPS.map(function (dep) {
+          var a = byKey(dep[0]), b = byKey(dep[1]);
+          var y1 = rowIndex(a.key) * RH + RH / 2, y2 = rowIndex(b.key) * RH + RH / 2;
+          var x1 = (a.e + 1) * DW, x2 = b.s * DW;
+          var p = x2 - x1 >= 16
+            ? 'M' + x1 + ' ' + y1 + ' H' + (x1 + 8) + ' V' + y2 + ' H' + (x2 - 2)
+            : 'M' + x1 + ' ' + y1 + ' H' + (x1 + 8) + ' V' + (y2 - RH / 2) + ' H' + (x2 - 10) + ' V' + y2 + ' H' + (x2 - 2);
+          var hot = moved[a.key] || moved[b.key];
+          return '<path class="' + (hot ? 'hot' : '') + '" d="' + p + '" marker-end="url(#arrow' + (hot ? '-hot' : '') + ')"/>';
+        }).join('');
+        return '<svg class="deps" width="' + W + '" height="' + (rows.length * RH) + '">' +
+          '<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#8c8c8c" stroke="none"/></marker>' +
+          '<marker id="arrow-hot" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#fa8c16" stroke="none"/></marker></defs>' + paths + '</svg>';
+      }
+
+      // Push successors so that each starts after its predecessor ends (finish-to-start).
+      function cascade(fromKey, shifted) {
+        DEPS.filter(function (dep) { return dep[0] === fromKey; }).forEach(function (dep) {
+          var a = byKey(dep[0]), b = byKey(dep[1]);
+          if (b.s <= a.e) {
+            var delta = a.e + 1 - b.s;
+            b.s += delta; b.e += delta;
+            shifted[b.key] = true;
+          }
+          cascade(b.key, shifted);
+        });
+      }
+
+      var drag = null;
+      canvas.addEventListener('pointerdown', function (e) {
+        var bar = e.target.closest('.bar[data-key]');
+        if (!bar) return;
+        var t = byKey(bar.dataset.key);
+        drag = { key: t.key, x0: e.clientX, s0: t.s, e0: t.e, resize: !!e.target.closest('[data-handle]'), bar: bar };
+        bar.classList.add('dragging');
+        bar.setPointerCapture(e.pointerId);
+      });
+      canvas.addEventListener('pointermove', function (e) {
+        if (!drag) return;
+        var dd = Math.round((e.clientX - drag.x0) / DW);
+        var t = byKey(drag.key);
+        if (drag.resize) { t.e = Math.max(t.s, drag.e0 + dd); }
+        else { var len = drag.e0 - drag.s0; t.s = Math.min(Math.max(0, drag.s0 + dd), DAYS - 1 - len); t.e = t.s + len; }
+        drag.bar.style.left = (t.s * DW) + 'px';
+        drag.bar.style.width = ((t.e - t.s + 1) * DW) + 'px';
+      });
+      function finish() {
+        if (!drag) return;
+        var t = byKey(drag.key);
+        var changed = t.s !== drag.s0 || t.e !== drag.e0;
+        var drag0 = { s: drag.s0, e: drag.e0 };
+        drag = null;
+        if (!changed) { render(); return; }
+        var snapshot = tasks.map(function (x) { return { key: x.key, s: x.s, e: x.e }; });
+        snapshot.filter(function (x) { return x.key === t.key; })[0].s = drag0.s;
+        snapshot.filter(function (x) { return x.key === t.key; })[0].e = drag0.e;
+        var shifted = {};
+        cascade(t.key, shifted);
+        if (tasks.some(function (x) { return x.e > DAYS - 1; })) {
+          snapshot.forEach(function (sn) { var x = byKey(sn.key); x.s = sn.s; x.e = sn.e; });
+          render();
+          WL.toast('Không dời được: task phụ thuộc sẽ vượt khỏi khung thời gian đang hiển thị', 'error');
+          return;
+        }
+        moved = {};
+        moved[t.key] = true;
+        Object.keys(shifted).forEach(function (k) { moved[k] = true; });
+        render();
+        var list = Object.keys(shifted);
+        if (list.length) {
+          var golive = byKey('WEB-25');
+          WL.toast(t.key + ' đổi lịch → tự dời ' + list.length + ' task phụ thuộc: ' + list.join(', ') + (shifted['WEB-25'] ? '. Go-live mới: ' + label(golive.e) : ''), 'info');
+        } else {
+          WL.toast(t.key + ': ' + label(t.s) + ' – ' + label(t.e) + '. Không ảnh hưởng task khác.');
+        }
+      }
+      canvas.addEventListener('pointerup', finish);
+      canvas.addEventListener('pointercancel', finish);
+
+      // Keyboard: focus a bar, then Shift+→ / Shift+← moves it one day.
+      canvas.addEventListener('keydown', function (e) {
+        var bar = e.target.closest('.bar[data-key]');
+        if (!bar || !e.shiftKey || (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft')) return;
+        e.preventDefault(); e.stopPropagation();
+        var t = byKey(bar.dataset.key);
+        drag = { key: t.key, s0: t.s, e0: t.e };
+        var step = e.key === 'ArrowRight' ? 1 : -1;
+        if (t.s + step >= 0 && t.e + step < DAYS) { t.s += step; t.e += step; }
+        finish();
+        var again = canvas.querySelector('.bar[data-key="' + t.key + '"]');
+        if (again) again.focus();
+      });
+
+      document.getElementById('reset').addEventListener('click', function () { reset(); render(); WL.toast('Đã đặt lại lịch ban đầu'); });
+      render();
+      // Start the view a little before today.
+      document.getElementById('right').scrollLeft = 0;
+    })();
+  </script>
+</body>
+</html>
